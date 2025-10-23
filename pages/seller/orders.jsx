@@ -8,12 +8,11 @@ export default function SellerOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load seller + orders
   useEffect(() => {
     const loadOrders = async () => {
       setLoading(true);
 
-      // 1️⃣ Check authenticated user
+      // 1️⃣ Get logged in user
       const { data: auth } = await supabase.auth.getUser();
       const user = auth?.user;
       if (!user) {
@@ -22,7 +21,7 @@ export default function SellerOrdersPage() {
         return;
       }
 
-      // 2️⃣ Get seller by user ID
+      // 2️⃣ Get seller linked to user
       const { data: sellerData, error: sellerErr } = await supabase
         .from("seller")
         .select("id")
@@ -36,16 +35,15 @@ export default function SellerOrdersPage() {
       }
       setSeller(sellerData);
 
-      // 3️⃣ Fetch seller's orders
-      //    (Assuming you’ve replicated your `cart`, `products`, `acc`, `categories`, `product_images` tables in Supabase)
+      // 3️⃣ Fetch cart items joined with products (using correct FK name)
       const { data: orderData, error: orderErr } = await supabase
         .from("cart")
-        .select(
-          `
+        .select(`
           cart_id,
           quantity,
           added_at,
-          products (
+          buyer_id,
+          products:cart_product_id_fkey (
             product_id,
             title,
             description,
@@ -53,27 +51,26 @@ export default function SellerOrdersPage() {
             original_price,
             condition,
             location,
-            categories (cat_name),
-            product_images (img_path),
-            seller_id
-          ),
-          buyer:acc (
-            fName,
-            lName,
-            email
+            cat_id,
+            seller_id,
+            categories (
+              cat_name
+            ),
+            product_images (
+              img_path
+            )
           )
-        `
-        )
+        `)
         .order("added_at", { ascending: false });
 
       if (orderErr) {
-        console.error(orderErr);
+        console.error("❌ Order fetch error:", orderErr);
         alert("❌ Failed to fetch orders.");
         setLoading(false);
         return;
       }
 
-      // filter only seller’s products
+      // 4️⃣ Filter orders that belong to this seller
       const sellerOrders = orderData.filter(
         (o) => o.products?.seller_id === sellerData.id
       );
@@ -107,8 +104,8 @@ export default function SellerOrdersPage() {
         <div className="grid md:grid-cols-2 gap-4">
           {orders.map((o) => {
             const p = o.products || {};
-            const img = p.product_images?.[0]?.img_path;
-            const buyer = o.buyer || {};
+            const img = p.product_images?.[0]?.img_path || "/uploads/default.png";
+
             return (
               <div
                 key={o.cart_id}
@@ -116,17 +113,11 @@ export default function SellerOrdersPage() {
               >
                 {/* Product Image */}
                 <div className="relative mb-2">
-                  {img ? (
-                    <img
-                      src={img}
-                      className="w-full h-48 object-cover rounded-lg"
-                      alt={p.title}
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded-lg text-gray-400">
-                      No Image
-                    </div>
-                  )}
+                  <img
+                    src={img}
+                    className="w-full h-48 object-cover rounded-lg"
+                    alt={p.title}
+                  />
                 </div>
 
                 {/* Product Info */}
@@ -134,9 +125,7 @@ export default function SellerOrdersPage() {
                 <p className="text-sm text-gray-600 mb-2">
                   {p.categories?.cat_name || "Uncategorized"}
                 </p>
-                <p className="text-gray-700 mb-2 line-clamp-2">
-                  {p.description}
-                </p>
+                <p className="text-gray-700 mb-2 line-clamp-2">{p.description}</p>
 
                 {/* Price & Quantity */}
                 <div className="flex items-center justify-between mt-3">
@@ -155,11 +144,9 @@ export default function SellerOrdersPage() {
                   </div>
                 </div>
 
-                {/* Buyer Info */}
+                {/* Order Info */}
                 <div className="text-sm text-gray-500 mt-3">
-                  Buyer: {buyer.fName} {buyer.lName}
-                  <br />
-                  Email: {buyer.email}
+                  Buyer ID: {o.buyer_id}
                   <br />
                   Condition: {p.condition || "N/A"}
                   <br />
