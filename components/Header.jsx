@@ -1,6 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMagnifyingGlass,
+  faCartShopping,
+  faUser,
+  faChevronDown,
+  faComments, // 👈 new
+} from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -12,48 +20,40 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showSellerModal, setShowSellerModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false); // 👈 new
 
-  // 🧠 Load current user on mount
   useEffect(() => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data?.user || null);
     };
-
     fetchUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
-
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // 🧠 Check if user is a seller
   useEffect(() => {
     const checkSeller = async () => {
       if (!user) return;
-
       const { data } = await supabase
         .from("seller")
         .select("id")
         .eq("auth_id", user.id)
         .maybeSingle();
-
       setIsSeller(!!data);
     };
-
     checkSeller();
   }, [user]);
 
-  // Logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     router.push("/login");
   };
 
-  // Become Seller
   const handleBecomeSeller = async () => {
     if (!user) {
       alert("You need to log in first.");
@@ -63,7 +63,6 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
     setLoading(true);
     try {
-      // Check if already a seller
       const { data: existing } = await supabase
         .from("seller")
         .select("id")
@@ -74,7 +73,6 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
         alert("✅ You are already a seller!");
         setIsSeller(true);
       } else {
-        // Insert new seller using auth_id
         const { error } = await supabase.from("seller").insert([{ auth_id: user.id }]);
         if (error) throw error;
         alert("🎉 You are now registered as a seller!");
@@ -93,17 +91,14 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
   return (
     <>
-      {/* Sticky Header */}
       <header className="fixed top-0 left-0 w-full bg-gray-50 border-b border-gray-200 z-50">
         <div className="flex flex-wrap items-center justify-between px-5 py-4 max-w-[1200px] mx-auto">
-          {/* Logo */}
           <div>
             <Link href="/" className="text-4xl font-bold text-black">
               ReMart
             </Link>
           </div>
 
-          {/* Search bar */}
           {!logoOnly && !hideSearch && (
             <div className="flex-1 mx-5 hidden md:flex">
               <form className="flex w-full max-w-xl">
@@ -115,28 +110,26 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                 />
                 <button
                   type="submit"
-                  className="bg-black text-white px-4 rounded-r-lg hover:bg-gray-800"
+                  className="bg-black text-white px-4 rounded-r-lg hover:bg-gray-800 flex items-center justify-center"
                 >
-                  🔍
+                  <FontAwesomeIcon icon={faMagnifyingGlass} />
                 </button>
               </form>
             </div>
           )}
 
-          {/* Right side */}
           {!logoOnly && (
             <div className="flex items-center gap-4 relative">
               {user ? (
                 <>
-                  {/* Cart */}
                   <Link
                     href="/cart"
-                    className="px-4 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300"
+                    className="px-4 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 flex items-center gap-2"
                   >
-                    🛒 Cart
+                    <FontAwesomeIcon icon={faCartShopping} />
+                    Cart
                   </Link>
 
-                  {/* Seller Button */}
                   {isSeller ? (
                     <Link
                       href="/seller"
@@ -153,16 +146,18 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                     </button>
                   )}
 
-                  {/* Account Dropdown */}
+                  {/* 👤 Account Dropdown */}
                   <div className="relative">
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                     >
-                      👤 {user.email.split("@")[0]}
-                      <span className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
-                        ▼
-                      </span>
+                      <FontAwesomeIcon icon={faUser} />
+                      {user.email.split("@")[0]}
+                      <FontAwesomeIcon
+                        icon={faChevronDown}
+                        className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                      />
                     </button>
 
                     {dropdownOpen && (
@@ -182,13 +177,20 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                       </div>
                     )}
                   </div>
+
+                  {/* 💬 Chat Button */}
+                  <button
+                    onClick={() => setChatOpen(true)}
+                    className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"
+                    title="Open Chat"
+                  >
+                    <FontAwesomeIcon icon={faComments} size="lg" />
+                  </button>
+                  
                 </>
               ) : (
                 <>
-                  <Link
-                    href="/login"
-                    className="text-lg font-medium text-black hover:text-gray-600"
-                  >
+                  <Link href="/login" className="text-lg font-medium text-black hover:text-gray-600">
                     Login
                   </Link>
                   <Link
@@ -204,10 +206,24 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
         </div>
       </header>
 
-      {/* Spacer for fixed header */}
       <div className="h-[90px]" />
 
-      {/* Seller Modal */}
+      {/* 💬 Placeholder Chat Modal */}
+      {chatOpen && (
+        <div className="fixed bottom-5 right-5 bg-white shadow-2xl border rounded-2xl w-96 h-[500px] z-[100] flex flex-col">
+          <div className="flex justify-between items-center p-3 border-b">
+            <h3 className="font-bold text-lg">Chat</h3>
+            <button
+              onClick={() => setChatOpen(false)}
+              className="text-gray-500 hover:text-gray-800 text-sm"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 p-3 overflow-y-auto text-gray-600">Chat system coming soon...</div>
+        </div>
+      )}
+
       {showSellerModal && !isSeller && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md text-center shadow-lg">
