@@ -171,7 +171,7 @@ export default function ProductPage() {
             <div className="mb-5">
               <p className="font-semibold">👤 Seller:</p>
               <p>
-                {product.seller} (⭐ {product.rating})
+                {product.seller.label} (⭐ {product.rating})
               </p>
             </div>
 
@@ -183,12 +183,18 @@ export default function ProductPage() {
               >
                 Add to Cart
               </button>
-              <a
-                href={`/chat?seller_id=${product.seller_id}`}
-                className="flex-1 text-center bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition"
+              <button
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("openChat", {
+                      detail: { seller_auth_id: product.seller.auth_id, product_id: product.id },
+                    })
+                  )
+                }
+                className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition"
               >
                 Contact Seller
-              </a>
+              </button>
               <button
                 onClick={() => router.back()}
                 className="flex-1 bg-gray-100 text-black py-3 rounded-lg hover:bg-gray-200 transition"

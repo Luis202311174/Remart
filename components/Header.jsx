@@ -1,5 +1,5 @@
 "use client";
-
+import ChatLayout from "@/components/ChatLayout";
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -20,7 +20,8 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showSellerModal, setShowSellerModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false); // 👈 new
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatTarget, setChatTarget] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -47,6 +48,15 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
     };
     checkSeller();
   }, [user]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      setChatOpen(true);
+      setChatTarget(e.detail); // e.detail = { seller_id, product_id }
+    };
+    window.addEventListener("openChat", handler);
+    return () => window.removeEventListener("openChat", handler);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -186,7 +196,7 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                   >
                     <FontAwesomeIcon icon={faComments} size="lg" />
                   </button>
-                  
+
                 </>
               ) : (
                 <>
@@ -208,21 +218,13 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
       <div className="h-[90px]" />
 
-      {/* 💬 Placeholder Chat Modal */}
+      {/* Chat Modal */}
       {chatOpen && (
-        <div className="fixed bottom-5 right-5 bg-white shadow-2xl border rounded-2xl w-96 h-[500px] z-[100] flex flex-col">
-          <div className="flex justify-between items-center p-3 border-b">
-            <h3 className="font-bold text-lg">Chat</h3>
-            <button
-              onClick={() => setChatOpen(false)}
-              className="text-gray-500 hover:text-gray-800 text-sm"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="flex-1 p-3 overflow-y-auto text-gray-600">Chat system coming soon...</div>
-        </div>
-      )}
+      <ChatLayout
+        onClose={() => setChatOpen(false)}
+        chatTarget={chatTarget}
+      />
+    )}
 
       {showSellerModal && !isSeller && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
