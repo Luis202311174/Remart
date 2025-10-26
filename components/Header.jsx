@@ -63,6 +63,15 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
     return () => window.removeEventListener("openChat", handler);
   }, []);
 
+  useEffect(() => {
+    const handler = (e) => {
+      setChatOpen(true);
+      setChatTarget(e.detail); // e.detail = { seller_id, product_id }
+    };
+    window.addEventListener("openChat", handler);
+    return () => window.removeEventListener("openChat", handler);
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -221,7 +230,17 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
       <div className="h-[90px]" />
 
+
       {chatOpen && <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />}
+
+      {/* Chat Modal */}
+      {chatOpen && (
+      <ChatLayout
+        onClose={() => setChatOpen(false)}
+        chatTarget={chatTarget}
+      />
+    )}
+
 
       {showSellerModal && !isSeller && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
