@@ -1,27 +1,41 @@
+// /pages/index.jsx
 import Header from "../components/Header";
 import Filter from "../components/Filter";
 import ItemGrid from "../components/ItemGrid";
-import { fetchAllProducts } from "@/lib/productFetcher"; 
-import { supabase } from "@/lib/supabaseClient";
+import { createPagesServerClient } from "@supabase/auth-helpers-nextjs"; // ✅ for SSR session-safe fetch
+import { fetchAllProducts } from "@/lib/productFetcher";
 
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps(context) {
   try {
-    // Get the logged-in user from Supabase auth cookie
-    const { data: { session } } = await supabase.auth.getSession(req);
-    const userId = session?.user?.id || null;
+    // ✅ Create a Supabase client tied to user cookies (auth-safe)
+    const supabase = createPagesServerClient(context);
 
-    const items = await fetchAllProducts(50, userId); // Exclude seller's own products
-    return { props: { items } };
+    // ✅ Get the session
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const user = session?.user || null;
+
+    // ✅ Fetch items from your productFetcher (optionally use user info)
+    const items = await fetchAllProducts(50, context);
+
+    return {
+      props: {
+        items,
+        user, // ✅ pass session user (optional, but useful for UI)
+      },
+    };
   } catch (error) {
     console.error("❌ Error in getServerSideProps:", error.message || error);
-    return { props: { items: [] } };
+    return { props: { items: [], user: null } };
   }
 }
 
-export default function Home({ items = [] }) {
+export default function Home({ items = [], user }) {
   return (
     <main className="bg-white text-gray-900 font-sans min-h-screen">
-      <Header />
+      <Header user={user} /> {/* ✅ Pass user if you want conditional header UI */}
 
       <div className="max-w-[1200px] mx-auto p-4">
         <h2 className="text-2xl mb-1 font-semibold">Browse Items</h2>

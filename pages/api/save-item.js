@@ -1,5 +1,5 @@
 // pages/api/save-item.js
-import { supabase } from "@/lib/supabaseClient";
+import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -7,28 +7,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { product_id } = req.body;
-    const token = req.headers.authorization?.split(" ")[1];
+    // Create Supabase server client from request/response context
+    const supabase = createPagesServerClient({ req, res });
 
-    if (!token) {
-      return res.status(401).json({ success: false, message: "You must be logged in." });
-    }
-
-    // Verify the user session
+    // Get user session
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(token);
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return res.status(401).json({ success: false, message: "Invalid session." });
+      return res.status(401).json({ success: false, message: "You must be logged in." });
     }
 
+    const { product_id } = req.body;
     const buyer_id = user.id;
 
-    // Check if the item is already saved
+    // Check if item is already saved
     const { data: existingItem, error: fetchError } = await supabase
-      .from("cart") // still using the cart table
+      .from("cart")
       .select("*")
       .eq("buyer_id", buyer_id)
       .eq("product_id", product_id)
@@ -43,22 +40,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // Save item (no quantity needed — acts like a bookmark)
+    // Save item (acts like a bookmark)
     const { error: insertError } = await supabase
       .from("cart")
       .insert([{ buyer_id, product_id, quantity: 1 }]);
 
     if (insertError) throw insertError;
 
-    return res.status(200).json({
-      success: true,
-      message: "Item saved successfully!",
-    });
+    return res.status(200).json({ success: true, message: "Item saved successfully!" });
   } catch (err) {
     console.error("Save item error:", err);
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Failed to save item.",
-    });
+    return res.status(500).json({ success: false, message: err.message || "Failed to save item." });
   }
 }

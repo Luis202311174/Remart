@@ -6,17 +6,24 @@ export default function Filter({ itemCount = 0, show = false }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [category, setCategory] = useState("all");
+  const [condition, setCondition] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [query, setQuery] = useState("");
+
+  // Update state when URL changes
+  useEffect(() => {
+    setCategory(searchParams.get("category") || "all");
+    setCondition(searchParams.get("condition") || "all");
+    setMinPrice(searchParams.get("min_price") || "");
+    setMaxPrice(searchParams.get("max_price") || "");
+    setSort(searchParams.get("sort") || "newest");
+    setQuery(searchParams.get("q") || "");
+  }, [searchParams]);
+
   if (!show) return null;
-
-  // get current query values
-  const [category, setCategory] = useState(searchParams.get("category") || "all");
-  const [condition, setCondition] = useState(searchParams.get("condition") || "all");
-  const [minPrice, setMinPrice] = useState(searchParams.get("min_price") || "");
-  const [maxPrice, setMaxPrice] = useState(searchParams.get("max_price") || "");
-  const [sort, setSort] = useState(searchParams.get("sort") || "newest");
-
-  // keep search query if present
-  const query = searchParams.get("q") || "";
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -40,13 +47,10 @@ export default function Filter({ itemCount = 0, show = false }) {
     <div className="mb-6">
       <p className="text-gray-500 mb-3">{itemCount} items found</p>
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-wrap gap-2 items-end"
-      >
+      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
         <input type="hidden" name="q" value={query} />
 
-        {/* category */}
+        {/* Category */}
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -59,7 +63,7 @@ export default function Filter({ itemCount = 0, show = false }) {
           <option value="Clothing">Clothing</option>
         </select>
 
-        {/* condition */}
+        {/* Condition */}
         <select
           value={condition}
           onChange={(e) => setCondition(e.target.value)}
@@ -72,7 +76,7 @@ export default function Filter({ itemCount = 0, show = false }) {
           <option value="Fair">Fair</option>
         </select>
 
-        {/* price range */}
+        {/* Price range */}
         <input
           type="number"
           placeholder="Min ₱"
@@ -88,7 +92,7 @@ export default function Filter({ itemCount = 0, show = false }) {
           className="p-2 border border-gray-300 rounded w-24"
         />
 
-        {/* sort */}
+        {/* Sort */}
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
@@ -100,7 +104,7 @@ export default function Filter({ itemCount = 0, show = false }) {
           <option value="price_high">Price: High to Low</option>
         </select>
 
-        {/* buttons */}
+        {/* Buttons */}
         <button
           type="submit"
           className="bg-gray-200 border border-gray-300 px-3 py-2 rounded hover:bg-gray-300"

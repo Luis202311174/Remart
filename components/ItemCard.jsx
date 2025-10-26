@@ -1,24 +1,29 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function ItemCard({ item }) {
+  const supabase = createClientComponentClient(); // ✅ Auth helper
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [checking, setChecking] = useState(true);
   const [userId, setUserId] = useState(null);
 
-  // 🧠 Get logged-in user ID (for saved/bookmarked check)
+  // 🧠 Get logged-in user ID
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUserId(session?.user?.id || null);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUserId(user?.id || null);
+      } catch (err) {
+        console.warn("Unable to get logged-in user:", err.message);
+      }
     };
     fetchUser();
-  }, []);
+  }, [supabase]);
 
-  // 🧠 Check if this product is already saved
+  // 🧠 Check if this product is already saved/bookmarked
   useEffect(() => {
     if (!userId) return;
 
@@ -41,7 +46,7 @@ export default function ItemCard({ item }) {
     };
 
     checkIfSaved();
-  }, [userId, item.id]);
+  }, [userId, item.id, supabase]);
 
   // ❤️ Save item (bookmark)
   const handleSaveItem = async () => {

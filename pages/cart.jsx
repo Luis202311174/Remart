@@ -2,18 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react"; // ✅ unified session handling
 import Header from "@/components/Header";
 import { MessageSquare, Eye } from "lucide-react";
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([]);
+  const supabase = useSupabaseClient();
+  const user = useUser();
   const router = useRouter();
+
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // 🔹 Fetch cart items
   const fetchCart = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
     if (!user) {
       router.push("/login");
       return;
@@ -39,34 +41,34 @@ export default function CartPage() {
       .eq("buyer_id", user.id);
 
     if (error) {
-      console.error("Cart fetch error:", error.message);
-      return;
+      console.error("❌ Cart fetch error:", error.message);
+      setCartItems([]);
+    } else {
+      const formatted = data.map((item) => ({
+        cart_id: item.cart_id,
+        quantity: item.quantity,
+        product_id: item.product_id,
+        title: item.products?.title,
+        price: item.products?.price,
+        condition: item.products?.condition,
+        location: item.products?.location,
+        seller_id: item.products?.seller_id,
+        img_path:
+          item.products?.product_images?.[0]?.img_path || "/uploads/default.png",
+      }));
+
+      setCartItems(formatted);
     }
 
-    const formatted = data.map((item) => ({
-      cart_id: item.cart_id,
-      quantity: item.quantity,
-      product_id: item.product_id,
-      title: item.products?.title,
-      price: item.products?.price,
-      condition: item.products?.condition,
-      location: item.products?.location,
-      seller_id: item.products?.seller_id,
-      img_path:
-        item.products?.product_images?.[0]?.img_path || "/uploads/default.png",
-    }));
-
-    setCartItems(formatted);
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (user) fetchCart();
+  }, [user]);
 
   // 🔹 Remove item
   const handleRemove = async (cartId) => {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
     if (!user) return;
 
     const { error } = await supabase
@@ -79,9 +81,8 @@ export default function CartPage() {
     else fetchCart();
   };
 
-  // 🔹 Contact Seller (for now just alert or redirect)
+  // 🔹 Contact Seller (placeholder)
   const handleContactSeller = async (sellerId) => {
-    // Fetch seller’s account info via auth_id or your acc table
     const { data, error } = await supabase
       .from("seller")
       .select("id, auth_id")
@@ -93,21 +94,25 @@ export default function CartPage() {
       return;
     }
 
-    // You can redirect to a message/chat page or show modal
     alert(`📞 Contact this seller via their profile.`);
   };
 
   return (
     <>
-      <Header />
+      <Header user={user} /> {/* ✅ Pass user to header if needed */}
       <div className="h-[50px]" /> {/* Spacer for header */}
+
       <div className="max-w-5xl mx-auto py-10 px-4">
         <h1 className="text-3xl font-bold mb-8 text-gray-800 flex items-center gap-2">
           🛍️ Interested Items
         </h1>
 
         <div className="bg-white shadow-md rounded-2xl p-6">
-          {cartItems.length > 0 ? (
+          {loading ? (
+            <div className="text-center text-gray-400 py-10">
+              Loading your items...
+            </div>
+          ) : cartItems.length > 0 ? (
             <div className="divide-y divide-gray-200">
               {cartItems.map((item) => (
                 <div

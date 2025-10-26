@@ -1,27 +1,32 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { List, PackageX, Edit, Trash2 } from "lucide-react";
 
 export default function MyListings({ loadPage }) {
+  const supabase = createClientComponentClient(); // ✅ session-aware client
   const [loading, setLoading] = useState(true);
   const [seller, setSeller] = useState(null);
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
 
-  // ✅ 1. Check user session
+  // ✅ 1. Load seller products
   useEffect(() => {
     const loadSellerProducts = async () => {
       setLoading(true);
+      setError("");
 
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
+      // ✅ Check authenticated user
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      const user = auth?.user;
 
-      if (!user) {
+      if (authError || !user) {
+        setError("⚠️ Session expired. Please log in again.");
+        setLoading(false);
         return;
       }
 
-      // ✅ 2. Find the seller by user ID
+      // ✅ 2. Find the seller by auth_id
       const { data: sellerData, error: sellerError } = await supabase
         .from("seller")
         .select("id")
@@ -36,10 +41,11 @@ export default function MyListings({ loadPage }) {
 
       setSeller(sellerData);
 
-      // ✅ 3. Fetch products for this seller
+      // ✅ 3. Fetch seller’s products
       const { data: productsData, error: prodError } = await supabase
         .from("products")
-        .select(`
+        .select(
+          `
           product_id,
           title,
           description,
@@ -50,27 +56,32 @@ export default function MyListings({ loadPage }) {
           created_at,
           categories (cat_name),
           product_images (img_path)
-        `)
+        `
+        )
         .eq("seller_id", sellerData.id)
         .order("product_id", { ascending: false });
 
-      if (prodError) setError(prodError.message);
-      else setProducts(productsData || []);
+      if (prodError) {
+        setError("❌ " + prodError.message);
+      } else {
+        setProducts(productsData || []);
+      }
 
       setLoading(false);
     };
 
     loadSellerProducts();
-  }, []);
+  }, [supabase]);
 
   // ✅ 4. Delete product
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     const { error } = await supabase.from("products").delete().eq("product_id", id);
     if (error) alert("Error deleting product: " + error.message);
-    else setProducts(products.filter((p) => p.product_id !== id));
+    else setProducts((prev) => prev.filter((p) => p.product_id !== id));
   };
 
+  // ✅ UI States
   if (loading)
     return (
       <div className="flex justify-center items-center h-64 text-gray-500">
@@ -96,7 +107,7 @@ export default function MyListings({ loadPage }) {
           <PackageX className="w-10 h-10 mx-auto mb-2 text-gray-400" />
           <p>No products found.</p>
           <button
-            onClick={() => loadPage("add-product")} // ✅ call parent function
+            onClick={() => loadPage("add-product")}
             className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Add Your First Product
@@ -109,7 +120,7 @@ export default function MyListings({ loadPage }) {
               key={product.product_id}
               className="border border-gray-200 rounded-xl shadow-sm p-4 hover:shadow-md transition"
             >
-              {/* Image section */}
+              {/* Product Image */}
               <div className="relative mb-2">
                 {product.product_images?.length ? (
                   <>
@@ -140,14 +151,14 @@ export default function MyListings({ loadPage }) {
                 )}
               </div>
 
-              {/* Product info */}
+              {/* Product Info */}
               <h3 className="font-semibold text-lg mb-1">{product.title}</h3>
               <p className="text-sm text-gray-600 mb-2">
                 {product.categories?.cat_name || "Uncategorized"}
               </p>
               <p className="text-gray-700 mb-2 line-clamp-2">{product.description}</p>
 
-              {/* Price and actions */}
+              {/* Price & Actions */}
               <div className="flex items-center justify-between mt-3">
                 <div>
                   <span className="text-blue-600 font-bold">
@@ -175,12 +186,13 @@ export default function MyListings({ loadPage }) {
                 </div>
               </div>
 
-              {/* Additional info */}
+              {/* Additional Info */}
               <div className="text-sm text-gray-500 mt-3">
                 Condition: {product.condition || "N/A"} <br />
                 Location: {product.location || "N/A"} <br />
                 <span className="text-xs text-gray-400">
-                  Posted on {new Date(product.created_at).toLocaleDateString("en-PH", {
+                  Posted on{" "}
+                  {new Date(product.created_at).toLocaleDateString("en-PH", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",

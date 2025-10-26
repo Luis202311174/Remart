@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import Header from "@/components/Header";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = useSupabaseClient(); // ✅ use the context-provided client
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -20,14 +21,8 @@ export default function LoginPage() {
     setErrors({});
     setLoading(true);
 
-    const newErrors = {};
-    if (!form.email) newErrors.email = "Email is required.";
-    else if (!/\S+@\S+\.\S+/.test(form.email))
-      newErrors.email = "Invalid email format.";
-    if (!form.password) newErrors.password = "Password is required.";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!form.email || !form.password) {
+      setErrors({ general: "Please fill out all fields." });
       setLoading(false);
       return;
     }

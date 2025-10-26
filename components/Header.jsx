@@ -1,5 +1,5 @@
 "use client";
-
+import ChatLayout from "@/components/ChatLayout";
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -7,34 +7,39 @@ import {
   faCartShopping,
   faUser,
   faChevronDown,
-  faComments, // 👈 new
+  faComments,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function Header({ logoOnly = false, hideSearch = false }) {
   const router = useRouter();
+  const supabase = createClientComponentClient(); // ✅ Auth helper
   const [user, setUser] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showSellerModal, setShowSellerModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false); // 👈 new
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatTarget, setChatTarget] = useState(null);
 
+  // 🔹 Get current user and listen for auth changes
   useEffect(() => {
     const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data?.user || null);
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user || null);
     };
     fetchUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
-    return () => listener.subscription.unsubscribe();
-  }, []);
 
+    return () => listener.subscription.unsubscribe();
+  }, [supabase]);
+
+  // 🔹 Check if logged-in user is a seller
   useEffect(() => {
     const checkSeller = async () => {
       if (!user) return;
@@ -46,7 +51,17 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
       setIsSeller(!!data);
     };
     checkSeller();
-  }, [user]);
+  }, [user, supabase]);
+
+  // 🔹 Listen for global chat events
+  useEffect(() => {
+    const handler = (e) => {
+      setChatOpen(true);
+      setChatTarget(e.detail); // e.detail = { seller_id, product_id }
+    };
+    window.addEventListener("openChat", handler);
+    return () => window.removeEventListener("openChat", handler);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -69,16 +84,16 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
         .eq("auth_id", user.id)
         .maybeSingle();
 
-      if (existing) {
-        alert("✅ You are already a seller!");
-        setIsSeller(true);
-      } else {
-        const { error } = await supabase.from("seller").insert([{ auth_id: user.id }]);
-        if (error) throw error;
-        alert("🎉 You are now registered as a seller!");
-        setIsSeller(true);
-        router.push("/seller/index");
-      }
+     if (existing) {
+  alert("✅ You are already a seller!");
+  setIsSeller(true);
+} else {
+  const { error } = await supabase.from("seller").insert([{ auth_id: user.id }]);
+  if (error) throw error;
+  alert("🎉 You are now registered as a seller!");
+  setIsSeller(true);
+  router.push("/seller"); // ✅ Correct
+}
 
       setShowSellerModal(false);
     } catch (error) {
@@ -146,7 +161,6 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                     </button>
                   )}
 
-                  {/* 👤 Account Dropdown */}
                   <div className="relative">
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -178,7 +192,6 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                     )}
                   </div>
 
-                  {/* 💬 Chat Button */}
                   <button
                     onClick={() => setChatOpen(true)}
                     className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"
@@ -186,7 +199,7 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                   >
                     <FontAwesomeIcon icon={faComments} size="lg" />
                   </button>
-                  
+
                 </>
               ) : (
                 <>
@@ -208,21 +221,7 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
       <div className="h-[90px]" />
 
-      {/* 💬 Placeholder Chat Modal */}
-      {chatOpen && (
-        <div className="fixed bottom-5 right-5 bg-white shadow-2xl border rounded-2xl w-96 h-[500px] z-[100] flex flex-col">
-          <div className="flex justify-between items-center p-3 border-b">
-            <h3 className="font-bold text-lg">Chat</h3>
-            <button
-              onClick={() => setChatOpen(false)}
-              className="text-gray-500 hover:text-gray-800 text-sm"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="flex-1 p-3 overflow-y-auto text-gray-600">Chat system coming soon...</div>
-        </div>
-      )}
+      {chatOpen && <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />}
 
       {showSellerModal && !isSeller && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">

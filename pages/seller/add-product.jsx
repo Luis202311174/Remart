@@ -1,9 +1,11 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { PlusCircle } from "lucide-react";
 
 export default function AddProduct() {
+  const supabase = createClientComponentClient(); // ✅ new Supabase instance (auth helpers)
   const [categories, setCategories] = useState([]);
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,25 +21,31 @@ export default function AddProduct() {
   });
   const [successMsg, setSuccessMsg] = useState("");
 
-  // ✅ Fetch categories and seller info
+  // ✅ Fetch categories + verify seller
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
 
-      if (!user) {
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+
+      if (userErr || !user) {
+        console.warn("⚠️ No logged-in user or auth error:", userErr?.message);
         setLoading(false);
         return;
       }
 
-      const { data: sellerData } = await supabase
+      // ✅ Check if the user is registered as a seller
+      const { data: sellerData, error: sellerErr } = await supabase
         .from("seller")
         .select("id")
         .eq("auth_id", user.id)
         .single();
 
-      if (!sellerData) {
+      if (sellerErr || !sellerData) {
+        console.warn("⚠️ Seller record not found:", sellerErr?.message);
         alert("⚠️ You are not registered as a seller.");
         setLoading(false);
         return;
@@ -45,20 +53,21 @@ export default function AddProduct() {
 
       setSeller(sellerData);
 
+      // ✅ Fetch product categories
       const { data: categoriesData, error: catErr } = await supabase
         .from("categories")
         .select("*")
         .order("cat_name", { ascending: true });
 
-      if (catErr) console.error(catErr);
+      if (catErr) console.error("❌ Category fetch error:", catErr);
       setCategories(categoriesData || []);
       setLoading(false);
     };
 
     loadData();
-  }, []);
+  }, [supabase]);
 
-  // ✅ Handle form input
+  // ✅ Handle form field updates
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "images") {
@@ -68,25 +77,25 @@ export default function AddProduct() {
     }
   };
 
-  // ✅ Handle form submit
+  // ✅ Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccessMsg("");
 
     if (!seller) {
-      alert("Seller not found.");
+      alert("⚠️ Seller not found.");
       return;
     }
 
     if (!form.cat_id || !form.title || !form.price) {
-      alert("Please fill out all required fields.");
+      alert("⚠️ Please fill out all required fields.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Insert product
+      // ✅ Insert product into database
       const { data: productData, error: productError } = await supabase
         .from("products")
         .insert([
@@ -97,7 +106,9 @@ export default function AddProduct() {
             description: form.description,
             price: parseFloat(form.price),
             original_price:
-              form.original_price !== "" ? parseFloat(form.original_price) : null,
+              form.original_price !== ""
+                ? parseFloat(form.original_price)
+                : null,
             condition: form.condition,
             location: form.location,
           },
@@ -108,7 +119,7 @@ export default function AddProduct() {
       if (productError) throw productError;
       const product_id = productData.product_id;
 
-      // Upload images if any
+      // ✅ Upload images to Supabase Storage
       if (form.images.length > 0) {
         for (const image of form.images) {
           const fileName = `${Date.now()}_${image.name.replace(/\s+/g, "_")}`;
@@ -116,23 +127,24 @@ export default function AddProduct() {
             .from("product-images")
             .upload(fileName, image);
 
-          if (uploadErr) console.error("Upload error:", uploadErr);
-          else {
-            const { data: urlData } = supabase.storage
-              .from("product-images")
-              .getPublicUrl(file.path);
-
-            const imageUrl = urlData.publicUrl;
-            await supabase.from("product_images").insert({
-              product_id,
-              img_path: imageUrl,
-            });
+          if (uploadErr) {
+            console.error("❌ Upload error:", uploadErr);
+            continue;
           }
+
+          const { data: urlData } = supabase.storage
+            .from("product-images")
+            .getPublicUrl(file.path);
+
+          await supabase.from("product_images").insert({
+            product_id,
+            img_path: urlData.publicUrl,
+          });
         }
       }
 
+      // ✅ Success
       setSuccessMsg("✅ Product added successfully!");
-      // Reset form
       setForm({
         cat_id: "",
         title: "",
@@ -144,7 +156,7 @@ export default function AddProduct() {
         images: [],
       });
     } catch (err) {
-      console.error("Add product failed:", err);
+      console.error("❌ Add product failed:", err);
       alert("❌ Failed to add product.");
     } finally {
       setLoading(false);
@@ -165,7 +177,9 @@ export default function AddProduct() {
       </h2>
 
       {successMsg && (
-        <p className="bg-green-100 text-green-700 p-2 rounded mb-4">{successMsg}</p>
+        <p className="bg-green-100 text-green-700 p-2 rounded mb-4">
+          {successMsg}
+        </p>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -191,7 +205,9 @@ export default function AddProduct() {
 
         {/* Title */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Title</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Title
+          </label>
           <input
             type="text"
             name="title"
@@ -220,7 +236,9 @@ export default function AddProduct() {
         {/* Prices */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price (₱)</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Price (₱)
+            </label>
             <input
               type="number"
               name="price"
@@ -247,7 +265,9 @@ export default function AddProduct() {
 
         {/* Condition */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Condition</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Condition
+          </label>
           <select
             name="condition"
             value={form.condition}
@@ -263,7 +283,9 @@ export default function AddProduct() {
 
         {/* Location */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Location</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Location
+          </label>
           <input
             type="text"
             name="location"
@@ -276,7 +298,9 @@ export default function AddProduct() {
 
         {/* Images */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Product Images</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Product Images
+          </label>
           <input
             type="file"
             name="images"
@@ -285,7 +309,9 @@ export default function AddProduct() {
             onChange={handleChange}
             className="w-full p-2 mt-1 border rounded-lg"
           />
-          <p className="text-gray-500 text-sm mt-1">You can upload multiple images.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            You can upload multiple images.
+          </p>
         </div>
 
         {/* Submit */}

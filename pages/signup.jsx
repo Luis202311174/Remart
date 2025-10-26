@@ -1,13 +1,14 @@
-// /app/signup/page.jsx or /pages/signup.jsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import Header from "@/components/Header";
 
 export default function Signup() {
   const router = useRouter();
+  const supabase = useSupabaseClient(); // ✅ add this line
+
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",

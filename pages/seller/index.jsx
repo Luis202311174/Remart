@@ -1,12 +1,13 @@
 "use client";
+
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { List, PlusCircle, ShoppingBag, Settings } from "lucide-react";
 import Header from "@/components/Header";
 
-// Lazy-load components
+// Lazy-loaded sub-pages
 const MyListings = dynamic(() => import("./my-listings"), {
   loading: () => <p className="text-gray-500">Loading listings...</p>,
 });
@@ -19,6 +20,7 @@ const SellerOrdersPage = dynamic(() => import("./orders"), {
 
 export default function SellerDashboard() {
   const router = useRouter();
+  const supabase = createClientComponentClient(); // ✅ new helper
   const [user, setUser] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
   const [content, setContent] = useState(
@@ -28,15 +30,23 @@ export default function SellerDashboard() {
     </div>
   );
 
-  // Check login session
+  // ✅ Secure: Check Supabase session on mount
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) router.push("/login");
-      else setUser(data.user);
+    const getSession = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        console.warn("⚠️ No logged-in session:", error?.message);
+        router.push("/login"); // redirect to login
+      } else {
+        setUser(user);
+      }
     };
-    checkSession();
-  }, [router]);
+    getSession();
+  }, [supabase, router]);
 
   const menuItems = [
     { key: "my-listings", label: "My Listings", icon: List },
@@ -76,21 +86,21 @@ export default function SellerDashboard() {
 
   if (!user)
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-500">Checking authentication...</p>
+      <div className="flex justify-center items-center h-screen bg-white text-gray-700">
+        <p>Checking authentication...</p>
       </div>
     );
 
   return (
     <>
-      <Header hideSearch={true} />
+      <Header hideSearch />
 
-      {/* Prevent horizontal scroll globally */}
       <div className="flex h-screen overflow-hidden bg-white text-gray-900 font-sans">
-
         {/* Sidebar */}
-        <aside className="w-64 bg-gray-50 border-r border-gray-200 p-5 flex-shrink-0
-                          fixed top-16 bottom-0 overflow-y-auto left-0">
+        <aside
+          className="w-64 bg-gray-50 border-r border-gray-200 p-5 flex-shrink-0
+                     fixed top-16 bottom-0 overflow-y-auto left-0"
+        >
           <h3 className="text-xl font-semibold mb-4">Seller Menu</h3>
           <nav className="flex flex-col gap-2">
             {menuItems.map(({ key, label, icon: Icon }) => (
@@ -101,7 +111,9 @@ export default function SellerDashboard() {
                   loadPage(key);
                 }}
                 className={`px-3 py-2 flex items-center gap-2 text-left rounded transition ${
-                  activePage === key ? "bg-gray-200 font-semibold" : "hover:bg-gray-100"
+                  activePage === key
+                    ? "bg-gray-200 font-semibold"
+                    : "hover:bg-gray-100"
                 }`}
               >
                 <Icon size={18} />
@@ -111,7 +123,7 @@ export default function SellerDashboard() {
           </nav>
         </aside>
 
-        {/* Main content */}
+        {/* Main Content */}
         <main className="flex-1 ml-64 overflow-y-auto overflow-x-hidden h-screen p-6">
           {content}
         </main>
