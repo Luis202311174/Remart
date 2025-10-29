@@ -20,7 +20,7 @@ export default function ChatWindow({
   const [input, setInput] = useState("");
   const [chatId, setChatId] = useState(propChatId);
   const [currentUser, setCurrentUser] = useState(null);
-  const [chatPartnerEmail, setChatPartnerEmail] = useState("");
+  const [partnerName, setPartnerName] = useState("Chat");
   const messagesEndRef = useRef(null);
 
   // ✅ Get logged-in user
@@ -32,60 +32,65 @@ export default function ChatWindow({
     fetchUser();
   }, [supabase]);
 
-  // ✅ Load messages / lazy-create chat
+  // ✅ Load chat messages
   useEffect(() => {
     if (!currentUser) return;
 
     const loadChat = async () => {
-      if (chatId) {
-        const msgs = await fetchMessages(chatId);
-        setMessages(msgs);
-      } else if (sellerAuthId && productId) {
-        const existingChat = await getChat(
+      let activeChatId = chatId;
+      if (!activeChatId && sellerAuthId && productId) {
+        const existing = await getChat(
           buyerAuthId || currentUser.id,
           sellerAuthId,
           productId
         );
-        if (existingChat) {
-          setChatId(existingChat.chat_id);
-          const msgs = await fetchMessages(existingChat.chat_id);
-          setMessages(msgs);
+        if (existing) {
+          activeChatId = existing.chat_id;
+          setChatId(existing.chat_id);
         }
+      }
+
+      if (activeChatId) {
+        const msgs = await fetchMessages(activeChatId);
+        setMessages(msgs);
       }
     };
 
     loadChat();
   }, [currentUser, chatId, buyerAuthId, sellerAuthId, productId]);
 
-  // ✅ Fetch chat partner info
+  // ✅ Fetch chat partner's name
   useEffect(() => {
-    if (!chatId || !currentUser) return;
-
-    const fetchPartner = async () => {
-      const { data: chat, error } = await supabase
-        .from("chats")
-        .select("buyer_auth_id,seller_auth_id")
-        .eq("chat_id", chatId)
-        .maybeSingle();
-
-      if (!chat || error) return;
+    const loadPartner = async () => {
+      if (!chatId && !sellerAuthId) return;
 
       const partnerId =
-        chat.buyer_auth_id === currentUser.id
-          ? chat.seller_auth_id
-          : chat.buyer_auth_id;
+        currentUser?.id === buyerAuthId ? sellerAuthId : buyerAuthId;
 
-      const { data: acc } = await supabase
-        .from("acc")
-        .select("email")
+      if (!partnerId) return;
+
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("fname, lname")
         .eq("auth_id", partnerId)
         .maybeSingle();
 
-      setChatPartnerEmail(acc?.email || "Unknown User");
+      if (error) {
+        console.error("❌ loadPartner error:", error);
+        setPartnerName("Unknown User");
+        return;
+      }
+
+      const name =
+        profile?.fname || profile?.lname
+          ? `${profile?.fname || ""} ${profile?.lname || ""}`.trim()
+          : "Unknown User";
+
+      setPartnerName(name);
     };
 
-    fetchPartner();
-  }, [chatId, currentUser, supabase]);
+    loadPartner();
+  }, [chatId, currentUser, buyerAuthId, sellerAuthId, supabase]);
 
   // ✅ Subscribe to new messages
   useEffect(() => {
@@ -107,11 +112,8 @@ export default function ChatWindow({
     if (!input.trim() || !currentUser) return;
 
     const message = await sendMessageLazy({
-      chat_id: chatId,
-      buyer_auth_id: buyerAuthId || currentUser.id,
-      seller_auth_id: sellerAuthId,
+      otherUserId: sellerAuthId,
       product_id: productId,
-      sender_auth_id: currentUser.id,
       content: input.trim(),
     });
 
@@ -119,7 +121,6 @@ export default function ChatWindow({
       setInput("");
       setChatId(message.chat_id || chatId);
 
-      // Reload messages if chat just created
       if (message.chat_id && !chatId) {
         const msgs = await fetchMessages(message.chat_id);
         setMessages(msgs);
@@ -132,7 +133,7 @@ export default function ChatWindow({
       {/* Header */}
       <div className="flex justify-between items-center p-3 border-b bg-blue-600 text-white z-10">
         <h3 className="font-semibold text-lg truncate flex-1">
-          {chatPartnerEmail ? `${chatPartnerEmail}'s Chat` : "Chat"}
+          Chat with {partnerName}
         </h3>
         <button
           onClick={onClose}
@@ -158,6 +159,9 @@ export default function ChatWindow({
                   : "bg-gray-200 text-gray-800"
               }`}
             >
+              {m.sender_name ? (
+                <p className="text-xs text-gray-500 mb-1">{m.sender_name}</p>
+              ) : null}
               {m.content}
             </div>
           ))

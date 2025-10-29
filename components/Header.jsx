@@ -17,12 +17,15 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
   const router = useRouter();
   const supabase = createClientComponentClient(); // ✅ Auth helper
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showSellerModal, setShowSellerModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatTarget, setChatTarget] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
 
   // 🔹 Get current user and listen for auth changes
   useEffect(() => {
@@ -38,6 +41,22 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("fname, lname")
+        .eq("auth_id", user.id)
+        .maybeSingle();
+
+      if (error) console.error("Error fetching profile:", error);
+      else setProfile(data);
+    };
+
+    fetchProfile();
+  }, [user, supabase]);
 
   // 🔹 Check if logged-in user is a seller
   useEffect(() => {
@@ -125,20 +144,29 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
           {!logoOnly && !hideSearch && (
             <div className="flex-1 mx-5 hidden md:flex">
-              <form className="flex w-full max-w-xl">
-                <input
-                  type="text"
-                  placeholder="Search items..."
-                  required
-                  className="flex-1 p-3 border border-gray-300 rounded-l-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <button
-                  type="submit"
-                  className="bg-black text-white px-4 rounded-r-lg hover:bg-gray-800 flex items-center justify-center"
-                >
-                  <FontAwesomeIcon icon={faMagnifyingGlass} />
-                </button>
-              </form>
+             <form
+  onSubmit={(e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+  }}
+  className="flex w-full max-w-xl"
+>
+  <input
+    type="text"
+    placeholder="Search items..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="flex-1 p-3 border border-gray-300 rounded-l-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+  />
+  <button
+    type="submit"
+    className="bg-black text-white px-4 rounded-r-lg hover:bg-gray-800 flex items-center justify-center"
+  >
+    <FontAwesomeIcon icon={faMagnifyingGlass} />
+  </button>
+</form>
+
             </div>
           )}
 
@@ -176,7 +204,9 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                     >
                       <FontAwesomeIcon icon={faUser} />
-                      {user.email.split("@")[0]}
+                      {profile
+                      ? `${profile.fname?.split(" ")[0] || ""} ${profile.lname || ""}`.trim()
+                      : user.email.split("@")[0]}
                       <FontAwesomeIcon
                         icon={faChevronDown}
                         className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
@@ -229,9 +259,6 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
       </header>
 
       <div className="h-[90px]" />
-
-
-      {chatOpen && <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />}
 
       {/* Chat Modal */}
       {chatOpen && (

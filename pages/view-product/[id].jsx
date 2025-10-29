@@ -1,16 +1,14 @@
-// /pages/view-product/[id].jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
 import Header from "@/components/Header";
 import ItemGrid from "@/components/ItemGrid";
 import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { fetchProductById, fetchSimilarProducts } from "@/lib/productFetcher";
 
 export async function getServerSideProps(context) {
   try {
     const supabase = createPagesServerClient(context);
-
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -19,7 +17,17 @@ export async function getServerSideProps(context) {
     const { id } = context.params;
 
     const product = await fetchProductById(id, context);
-    const similar = product ? await fetchSimilarProducts(product.cat_id, id, 4, context) : [];
+    let similar = product ? await fetchSimilarProducts(product.cat_id, id, 4, context) : [];
+
+    // 🧩 Normalize "similar" items to match main product structure
+    similar = similar.map((item) => ({
+      ...item,
+      title: item.title || item.product_name || "Untitled",
+      category: item.category || item.cat_name || "Uncategorized",
+      price: item.price || item.amount || 0,
+      images: item.images || (item.img_path ? [{ img_path: item.img_path }] : []),
+      seller_label: item.seller_label || item.seller_name || "Unknown Seller",
+    }));
 
     return {
       props: {
@@ -42,14 +50,80 @@ export async function getServerSideProps(context) {
 
 export default function ProductPage({ product, similar = [], user }) {
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   const [mainImage, setMainImage] = useState(product?.images?.[0]?.img_path || "");
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [zoomed, setZoomed] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [userId, setUserId] = useState(user?.id || null);
 
   const images = product?.images || [];
+
+  // 🔹 If no user from SSR, get client-side
+  useEffect(() => {
+    if (!userId) {
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUserId(user?.id || null);
+      })();
+    }
+  }, [supabase, userId]);
+
+  // 🔹 Check if product is already saved/bookmarked
+  useEffect(() => {
+    if (!userId || !product?.id) return;
+    const checkIfSaved = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("cart")
+          .select("product_id")
+          .eq("buyer_id", userId)
+          .eq("product_id", product.id)
+          .maybeSingle();
+        if (error) throw error;
+        if (data) setSaved(true);
+      } catch (err) {
+        console.error("Error checking saved item:", err);
+      } finally {
+        setChecking(false);
+      }
+    };
+    checkIfSaved();
+  }, [userId, product?.id, supabase]);
+
+  // ❤️ Save item handler
+  const handleSaveItem = async () => {
+    if (!userId) return router.push("/login");
+    if (saved || loading) return;
+
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("You must be logged in to save items.");
+
+      const res = await fetch("/api/save-item", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ product_id: product.id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Failed to save item.");
+
+      setSaved(true);
+    } catch (err) {
+      console.error("Save Item error:", err);
+      alert(err.message || "Could not save item.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!product) {
     return (
@@ -59,53 +133,17 @@ export default function ProductPage({ product, similar = [], user }) {
     );
   }
 
-  const handleNext = () => {
-    const nextIndex = (lightboxIndex + 1) % images.length;
-    setLightboxIndex(nextIndex);
-    setMainImage(images[nextIndex].img_path);
-    setZoomed(false);
-  };
-
-  const handlePrev = () => {
-    const prevIndex = (lightboxIndex - 1 + images.length) % images.length;
-    setLightboxIndex(prevIndex);
-    setMainImage(images[prevIndex].img_path);
-    setZoomed(false);
-  };
-
-  const handleAddToCart = async () => {
-    if (!user) return router.push("/login");
-
-    try {
-      const res = await fetch("/api/cart/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: product.id,
-          quantity,
-          buyerId: user.id,
-        }),
-      });
-
-      const data = await res.json();
-      alert(data.message || (data.success ? "Added to cart!" : "Failed to add."));
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong.");
-    }
-  };
-
   return (
     <>
       <Header user={user} />
       <div className="max-w-[1200px] mx-auto px-4 mt-5 grid md:grid-cols-2 gap-10">
-        {/* Images */}
+        {/* 🖼️ Product Images */}
         <div>
           {images.length ? (
             <>
               <div
                 className="rounded-xl overflow-hidden border border-gray-200 mb-3 cursor-pointer"
-                onClick={() => setLightboxOpen(true)}
+                onClick={() => setLightboxIndex(lightboxIndex)}
               >
                 <img src={mainImage} className="w-full h-80 object-cover" alt={product.title} />
               </div>
@@ -133,13 +171,17 @@ export default function ProductPage({ product, similar = [], user }) {
           )}
         </div>
 
-        {/* Details */}
+        {/* 📝 Product Details */}
         <div>
           <h1 className="text-3xl font-semibold mb-2">{product.title}</h1>
-          <p className="text-gray-600 mb-4">{product.category} • {product.condition}</p>
+          <p className="text-gray-600 mb-4">
+            {product.category} • {product.condition}
+          </p>
           <p className="text-2xl font-bold mb-2">₱{product.price.toLocaleString()}</p>
           {product.original_price && (
-            <p className="line-through text-gray-400 mb-4">₱{product.original_price.toLocaleString()}</p>
+            <p className="line-through text-gray-400 mb-4">
+              ₱{product.original_price.toLocaleString()}
+            </p>
           )}
           <p className="mb-5 text-gray-700 leading-relaxed">{product.description}</p>
 
@@ -153,19 +195,29 @@ export default function ProductPage({ product, similar = [], user }) {
             <p>{product.seller_label} (⭐ {product.rating})</p>
           </div>
 
+          {/* ❤️ Save & Contact Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={handleAddToCart}
-              className="flex-1 bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
+              onClick={handleSaveItem}
+              disabled={loading || saved}
+              className={`flex-1 py-3 rounded-lg transition ${
+                saved
+                  ? "bg-green-500 text-white cursor-default"
+                  : "bg-black text-white hover:bg-gray-800"
+              } disabled:opacity-50`}
             >
-              Add to Cart
+              {loading ? "Saving..." : saved ? "Saved" : "Save Item"}
             </button>
+
             <button
               onClick={() =>
                 window.dispatchEvent(
                   new CustomEvent("openChat", {
                     detail: {
-                      seller_auth_id: product.seller.auth_id,
+                      seller_auth_id:
+                        product.seller?.auth_id ||
+                        product.seller_auth_id ||
+                        product.seller_id,
                       product_id: product.id,
                     },
                   })
@@ -175,6 +227,7 @@ export default function ProductPage({ product, similar = [], user }) {
             >
               Contact Seller
             </button>
+
             <button
               onClick={() => router.back()}
               className="flex-1 bg-gray-100 text-black py-3 rounded-lg hover:bg-gray-200 transition"
@@ -185,71 +238,11 @@ export default function ProductPage({ product, similar = [], user }) {
         </div>
       </div>
 
-      {/* Similar Products */}
+      {/* 🛍️ Similar Products */}
       {similar.length > 0 && (
         <div className="mt-12 max-w-[1200px] mx-auto px-4">
           <h2 className="text-xl font-semibold mb-4">Similar Items</h2>
           <ItemGrid items={similar} />
-        </div>
-      )}
-
-      {/* Lightbox */}
-      {lightboxOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <div
-            className="relative max-w-[90%] max-h-[90%] flex flex-col items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="absolute top-2 right-2 text-red-600 p-1 hover:bg-red-100 rounded z-50"
-              onClick={() => setLightboxOpen(false)}
-            >
-              <X size={20} />
-            </button>
-
-            <img
-              src={mainImage}
-              className={`w-full max-h-[80vh] object-contain transition-transform duration-300 ${
-                zoomed ? "scale-150" : ""
-              }`}
-              alt="Zoomed Product"
-            />
-
-            <div className="absolute bottom-2 right-2 flex gap-2">
-              <button
-                className="bg-white p-2 rounded hover:bg-gray-200"
-                onClick={() => setZoomed(true)}
-              >
-                +
-              </button>
-              <button
-                className="bg-white p-2 rounded hover:bg-gray-200"
-                onClick={() => setZoomed(false)}
-              >
-                -
-              </button>
-            </div>
-
-            {images.length > 1 && (
-              <>
-                <button
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded hover:bg-gray-200"
-                  onClick={handlePrev}
-                >
-                  ◀
-                </button>
-                <button
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded hover:bg-gray-200"
-                  onClick={handleNext}
-                >
-                  ▶
-                </button>
-              </>
-            )}
-          </div>
         </div>
       )}
     </>

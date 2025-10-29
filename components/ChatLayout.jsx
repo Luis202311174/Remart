@@ -12,7 +12,6 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        // ✅ Get current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         setCurrentUser(user);
@@ -26,21 +25,23 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
 
         if (error) throw error;
 
-        // ✅ Collect unique user IDs to fetch emails
+        // ✅ Collect unique user IDs to fetch profile names
         const userIds = [
           ...new Set(chatsData.flatMap(c => [c.buyer_auth_id, c.seller_auth_id]))
         ].filter(Boolean);
 
         let profiles = [];
         if (userIds.length > 0) {
-          const { data: accProfiles } = await supabase
-            .from("acc")
-            .select("auth_id,email")
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("auth_id,fname,lname,pfp")
             .in("auth_id", userIds);
-          profiles = accProfiles || [];
+
+          if (profileError) throw profileError;
+          profiles = profileData || [];
         }
 
-        // ✅ Merge emails into chat objects
+        // ✅ Merge profile info into chat objects
         const mergedChats = chatsData.map(c => ({
           ...c,
           buyer: profiles.find(p => p.auth_id === c.buyer_auth_id) || null,
@@ -61,7 +62,6 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
           if (existingChat) {
             setSelectedChat(existingChat);
           } else {
-            // Lazy-create chat placeholder
             setSelectedChat({
               chat_id: null,
               seller_auth_id: chatTarget.seller_auth_id,
@@ -100,10 +100,18 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
               </p>
             ) : (
               chats.map((chat) => {
-                const otherUser =
+                const otherUserProfile =
                   currentUser?.id === chat.buyer_auth_id
-                    ? chat.seller?.email
-                    : chat.buyer?.email;
+                    ? chat.seller
+                    : chat.buyer;
+
+                const otherUserName = otherUserProfile
+                  ? `${otherUserProfile.fname || ""} ${otherUserProfile.lname || ""}`.trim() || "Unknown User"
+                  : "Unknown User";
+                const displayName =
+                  otherUser?.fname || otherUser?.lname
+                    ? `${otherUser?.fname || ""} ${otherUser?.lname || ""}`.trim()
+                    : otherUser?.email || "Unknown User";
 
                 return (
                   <div
@@ -114,7 +122,7 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
                     onClick={() => setSelectedChat(chat)}
                   >
                     <p className="font-medium text-gray-800">
-                      Chat with {otherUser || "Unknown User"}
+                      Chat with {otherUserName}
                     </p>
                   </div>
                 );

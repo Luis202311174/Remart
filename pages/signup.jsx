@@ -71,6 +71,21 @@ export default function Signup() {
       },
     });
 
+    if (!error && data.user) {
+      await new Promise((r) => setTimeout(r, 300));
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          fname: form.first_name,
+          lname: form.last_name,
+        })
+        .eq("auth_id", data.user.id);
+
+      if (updateError) console.error("Profile update failed:", updateError);
+    }
+
+
     if (error) {
       setErrors({ general: error.message });
     } else {

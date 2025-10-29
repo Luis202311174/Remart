@@ -1,16 +1,24 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-export default function ItemCard({ item }) {
-  const supabase = createClientComponentClient(); // ✅ Auth helper
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [userId, setUserId] = useState(null);
+/**
+ * ItemCard Component (Production Ready)
+ * - Uses optimistic UI
+ * - Preloaded SSR "saved" state supported
+ */
+export default function ItemCard({ item, savedIds = [] }) {
+  const supabase = createClientComponentClient();
 
-  // 🧠 Get logged-in user ID
+  // ✅ Initialize state based on preloaded server data
+  const [saved, setSaved] = useState(savedIds.includes(item.id));
+  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [checking, setChecking] = useState(true);
+
+  /* 🧠 Step 1: Get logged-in user ID */
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -18,14 +26,16 @@ export default function ItemCard({ item }) {
         setUserId(user?.id || null);
       } catch (err) {
         console.warn("Unable to get logged-in user:", err.message);
+      } finally {
+        setChecking(false);
       }
     };
     fetchUser();
   }, [supabase]);
 
-  // 🧠 Check if this product is already saved/bookmarked
+  /* 🧠 Step 2: If no preloaded saved state, check DB */
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || saved) return; // Skip if already known
 
     const checkIfSaved = async () => {
       try {
@@ -39,18 +49,17 @@ export default function ItemCard({ item }) {
         if (error) throw error;
         if (data) setSaved(true);
       } catch (err) {
-        console.error("Error checking saved item:", err);
-      } finally {
-        setChecking(false);
+        console.error("Error checking saved item:", err.message);
       }
     };
 
     checkIfSaved();
-  }, [userId, item.id, supabase]);
+  }, [userId, item.id, saved, supabase]);
 
-  // ❤️ Save item (bookmark)
+  /* ❤️ Step 3: Handle Save (Optimistic UI + API sync) */
   const handleSaveItem = async () => {
     if (saved || loading) return;
+    setSaved(true); // ✅ Optimistic update
     setLoading(true);
 
     try {
@@ -69,16 +78,16 @@ export default function ItemCard({ item }) {
 
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Failed to save item.");
-
-      setSaved(true);
     } catch (err) {
       console.error("Save Item error:", err);
+      setSaved(false); // ❌ Revert on failure
       alert(err.message || "Could not save item.");
     } finally {
       setLoading(false);
     }
   };
 
+  /* 🖼️ Step 4: Handle image gracefully */
   const imageSrc = item.image || "https://placehold.co/400x300?text=No+Image";
 
   return (
@@ -87,7 +96,9 @@ export default function ItemCard({ item }) {
       <div className="flex justify-between text-sm text-gray-600 mb-2">
         <span className="category">{item.category}</span>
         <span
-          className={`transition ${saved ? "text-red-500 cursor-default" : "cursor-pointer hover:text-red-400"}`}
+          className={`transition ${
+            saved ? "text-red-500 cursor-default" : "cursor-pointer hover:text-red-400"
+          }`}
           onClick={!saved ? handleSaveItem : undefined}
         >
           {checking ? "…" : saved ? "❤️" : "♡"}
@@ -112,20 +123,28 @@ export default function ItemCard({ item }) {
       {/* Title + Price */}
       <h3 className="text-lg font-medium mb-1 truncate">{item.title}</h3>
       <p className="mb-1 font-semibold">
-        {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(item.price)}
+        {new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+        }).format(item.price)}
         {item.original_price && (
           <span className="line-through text-gray-400 ml-2">
-            {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(item.original_price)}
+            {new Intl.NumberFormat("en-PH", {
+              style: "currency",
+              currency: "PHP",
+            }).format(item.original_price)}
           </span>
         )}
-        {item.discount && <span className="text-green-600 ml-2">{item.discount}% off</span>}
+        {item.discount && (
+          <span className="text-green-600 ml-2">{item.discount}% off</span>
+        )}
       </p>
 
       {/* Meta Info */}
       <p className="text-sm text-gray-600 mb-1">Condition: {item.condition}</p>
       <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>
       <p className="text-xs text-gray-500 mb-3">
-        🕑 {item.created_at} • ⭐ {item.rating} • {item.seller}
+        🕑 {item.created_at} • ⭐ {item.rating} • {item.seller_label}
       </p>
 
       {/* Buttons */}
@@ -140,7 +159,9 @@ export default function ItemCard({ item }) {
           onClick={handleSaveItem}
           disabled={loading || saved}
           className={`flex-1 py-2 px-3 rounded-lg transition ${
-            saved ? "bg-green-500 text-white cursor-default" : "bg-black text-white hover:bg-gray-800"
+            saved
+              ? "bg-green-500 text-white cursor-default"
+              : "bg-black text-white hover:bg-gray-800"
           } disabled:opacity-50`}
         >
           {loading ? "Saving..." : saved ? "Saved" : "Save Item"}

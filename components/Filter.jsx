@@ -1,67 +1,98 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Filter({ itemCount = 0, show = false }) {
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function Filter({ itemCount = 0, hasSearch = true }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [category, setCategory] = useState("all");
-  const [condition, setCondition] = useState("all");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [sort, setSort] = useState("newest");
-  const [query, setQuery] = useState("");
+  // 🧠 Initial values from URL
+  const [category, setCategory] = useState(searchParams.get("category") || "all");
+  const [condition, setCondition] = useState(searchParams.get("condition") || "all");
+  const [minPrice, setMinPrice] = useState(searchParams.get("min_price") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("max_price") || "");
+  const [sort, setSort] = useState(searchParams.get("sort") || "newest");
 
-  // Update state when URL changes
+  // 🧭 Categories from DB
+  const [categories, setCategories] = useState([]);
+
+ useEffect(() => {
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("cat_id, cat_name")
+      .order("cat_name", { ascending: true });
+
+    if (!error && data) {
+      // Remove duplicates by cat_id (in case DB has dup names)
+      const unique = Array.from(
+        new Map(data.map((c) => [c.cat_id, c])).values()
+      );
+      setCategories(unique);
+    }
+  };
+
+  fetchCategories();
+}, []);
+
+  // ✅ Handle Apply
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams);
+
+    if (category && category !== "all") params.set("category", category);
+    else params.delete("category");
+
+    if (condition && condition !== "all") params.set("condition", condition);
+    else params.delete("condition");
+
+    if (minPrice) params.set("min_price", minPrice);
+    else params.delete("min_price");
+
+    if (maxPrice) params.set("max_price", maxPrice);
+    else params.delete("max_price");
+
+    if (sort) params.set("sort", sort);
+    else params.delete("sort");
+
+    router.push(`?${params.toString()}`);
+  };
+
+  // ✅ Handle Clear
+  const handleClear = () => {
+    const q = searchParams.get("q") || "";
+    router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/");
+  };
+
+  // ✅ Sync state with URL
   useEffect(() => {
     setCategory(searchParams.get("category") || "all");
     setCondition(searchParams.get("condition") || "all");
     setMinPrice(searchParams.get("min_price") || "");
     setMaxPrice(searchParams.get("max_price") || "");
     setSort(searchParams.get("sort") || "newest");
-    setQuery(searchParams.get("q") || "");
   }, [searchParams]);
-
-  if (!show) return null;
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-
-    if (query) params.set("q", query);
-    if (category !== "all") params.set("category", category);
-    if (condition !== "all") params.set("condition", condition);
-    if (minPrice) params.set("min_price", minPrice);
-    if (maxPrice) params.set("max_price", maxPrice);
-    if (sort !== "newest") params.set("sort", sort);
-
-    router.push(`/?${params.toString()}`);
-  };
-
-  const handleClear = () => {
-    router.push(query ? `/?q=${encodeURIComponent(query)}` : "/");
-  };
 
   return (
     <div className="mb-6">
       <p className="text-gray-500 mb-3">{itemCount} items found</p>
 
       <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
-        <input type="hidden" name="q" value={query} />
-
-        {/* Category */}
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        >
-          <option value="all">All Categories</option>
-          <option value="Textbooks">Textbooks</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Furniture">Furniture</option>
-          <option value="Clothing">Clothing</option>
-        </select>
+        {/* Category (dynamic) */}
+      <select
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+  className="p-2 border border-gray-300 rounded"
+>
+  <option value="all">All Categories</option>
+  {categories.map((cat) => (
+    <option key={cat.cat_id} value={cat.cat_id}>
+      {cat.cat_name}
+    </option>
+  ))}
+</select>
 
         {/* Condition */}
         <select
