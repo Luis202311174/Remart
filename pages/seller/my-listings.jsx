@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { List, PackageX, Edit, Trash2 } from "lucide-react";
 
 export default function MyListings({ loadPage }) {
-  const supabase = createClientComponentClient(); // ✅ session-aware client
   const [loading, setLoading] = useState(true);
   const [seller, setSeller] = useState(null);
   const [products, setProducts] = useState([]);

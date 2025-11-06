@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { PlusCircle } from "lucide-react";
 
 export default function AddProduct() {
-  const supabase = createClientComponentClient(); // ✅ new Supabase instance (auth helpers)
   const [categories, setCategories] = useState([]);
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);

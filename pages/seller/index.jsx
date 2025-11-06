@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { List, PlusCircle, ShoppingBag, Settings } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -20,7 +20,6 @@ const SellerOrdersPage = dynamic(() => import("./orders"), {
 
 export default function SellerDashboard() {
   const router = useRouter();
-  const supabase = createClientComponentClient(); // ✅ new helper
   const [user, setUser] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
   const [content, setContent] = useState(

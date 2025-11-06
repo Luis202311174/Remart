@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { Pencil } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -13,7 +13,6 @@ import Header from "@/components/Header";
 export default function EditProductPage() {
   const router = useRouter();
   const { id } = router.query;
-  const supabase = createClientComponentClient();
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 
 /**
  * ItemCard Component (Production Ready)
@@ -10,7 +10,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
  * - Preloaded SSR "saved" state supported
  */
 export default function ItemCard({ item, savedIds = [] }) {
-  const supabase = createClientComponentClient();
 
   // ✅ Initialize state based on preloaded server data
   const [saved, setSaved] = useState(savedIds.includes(item.id));

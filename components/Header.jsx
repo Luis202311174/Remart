@@ -11,11 +11,10 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Header({ logoOnly = false, hideSearch = false }) {
   const router = useRouter();
-  const supabase = createClientComponentClient(); // ✅ Auth helper
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isSeller, setIsSeller] = useState(false);

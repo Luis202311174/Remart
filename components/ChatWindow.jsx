@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import {
   getChat,
   fetchMessages,
@@ -15,7 +15,6 @@ export default function ChatWindow({
   sellerAuthId = null,
   productId = null,
 }) {
-  const supabase = createClientComponentClient();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [chatId, setChatId] = useState(propChatId);
@@ -111,8 +110,11 @@ export default function ChatWindow({
     e.preventDefault();
     if (!input.trim() || !currentUser) return;
 
+    const otherUserId =
+      currentUser?.id === buyerAuthId ? sellerAuthId : buyerAuthId;
+
     const message = await sendMessageLazy({
-      otherUserId: sellerAuthId,
+      otherUserId,
       product_id: productId,
       content: input.trim(),
     });

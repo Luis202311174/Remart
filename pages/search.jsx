@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { fetchFilteredProducts } from "@/lib/productFetcher";
 import Header from "@/components/Header";
 import Filter from "@/components/Filter";
@@ -11,7 +11,6 @@ import ItemGrid from "@/components/ItemGrid";
 export default function SearchPage({ user = null }) {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
-  const supabase = createClientComponentClient();
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
