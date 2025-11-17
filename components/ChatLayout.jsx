@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import ChatWindow from "./ChatWindow";
 
 export default function ChatLayout({ onClose, chatTarget = null }) {
-  const supabase = createClientComponentClient();
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -109,9 +108,9 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
                   ? `${otherUserProfile.fname || ""} ${otherUserProfile.lname || ""}`.trim() || "Unknown User"
                   : "Unknown User";
                 const displayName =
-                  otherUser?.fname || otherUser?.lname
-                    ? `${otherUser?.fname || ""} ${otherUser?.lname || ""}`.trim()
-                    : otherUser?.email || "Unknown User";
+                  otherUserProfile?.fname || otherUserProfile?.lname
+                    ? `${otherUserProfile?.fname || ""} ${otherUserProfile?.lname || ""}`.trim()
+                    : otherUserProfile?.email || "Unknown User";
 
                 return (
                   <div

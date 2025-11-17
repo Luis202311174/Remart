@@ -1,39 +1,58 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { List, PackageX, Edit, Trash2 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import {
+  List,
+  PackageX,
+  Trash2,
+  Edit,
+  AlertTriangle,
+  CheckCircle,
+  MapPin,
+  X,
+} from "lucide-react";
+import dynamic from "next/dynamic";
+import EditProductModal from "@/components/EditProductModal";
+
+// Dynamic Leaflet imports
+const LeafletMapWithDraw = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 
 export default function MyListings({ loadPage }) {
-  const supabase = createClientComponentClient(); // ✅ session-aware client
   const [loading, setLoading] = useState(true);
   const [seller, setSeller] = useState(null);
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  // ✅ 1. Load seller products
+  // Modals
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [mapModalProduct, setMapModalProduct] = useState(null);
+
+  // Load seller + products
   useEffect(() => {
     const loadSellerProducts = async () => {
       setLoading(true);
       setError("");
 
-      // ✅ Check authenticated user
-      const { data: auth, error: authError } = await supabase.auth.getUser();
+      const { data: auth } = await supabase.auth.getUser();
       const user = auth?.user;
 
-      if (authError || !user) {
+      if (!user) {
         setError("⚠️ Session expired. Please log in again.");
         setLoading(false);
         return;
       }
 
-      // ✅ 2. Find the seller by auth_id
-      const { data: sellerData, error: sellerError } = await supabase
+      const { data: sellerData } = await supabase
         .from("seller")
         .select("id")
         .eq("auth_id", user.id)
         .single();
 
-      if (sellerError || !sellerData) {
+      if (!sellerData) {
         setError("⚠️ You are not registered as a seller.");
         setLoading(false);
         return;
@@ -41,47 +60,73 @@ export default function MyListings({ loadPage }) {
 
       setSeller(sellerData);
 
-      // ✅ 3. Fetch seller’s products
       const { data: productsData, error: prodError } = await supabase
         .from("products")
-        .select(
-          `
+        .select(`
           product_id,
           title,
           description,
           price,
           original_price,
           condition,
-          location,
+          lat,
+          lng,
+          radius,
           created_at,
           categories (cat_name),
           product_images (img_path)
-        `
-        )
+        `)
         .eq("seller_id", sellerData.id)
         .order("product_id", { ascending: false });
 
-      if (prodError) {
-        setError("❌ " + prodError.message);
-      } else {
-        setProducts(productsData || []);
-      }
+      if (prodError) setError("❌ " + prodError.message);
+      else setProducts(productsData || []);
 
       setLoading(false);
     };
 
     loadSellerProducts();
-  }, [supabase]);
+  }, []);
 
-  // ✅ 4. Delete product
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-    const { error } = await supabase.from("products").delete().eq("product_id", id);
-    if (error) alert("Error deleting product: " + error.message);
-    else setProducts((prev) => prev.filter((p) => p.product_id !== id));
+  // Auto-hide flash message
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  // Delete logic
+  const confirmDelete = (product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+    setShowDeleteModal(false);
+
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("product_id", productToDelete.product_id);
+
+    if (error) alert("❌ Error deleting product: " + error.message);
+    else {
+      setProducts((prev) =>
+        prev.filter((p) => p.product_id !== productToDelete.product_id)
+      );
+      setSuccessMsg("✅ Product deleted successfully!");
+    }
+
+    setProductToDelete(null);
   };
 
-  // ✅ UI States
+  // Edit logic
+  const handleEdit = (product) => {
+    setSelectedProduct(product);
+    setShowEditModal(true);
+  };
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-64 text-gray-500">
@@ -97,7 +142,116 @@ export default function MyListings({ loadPage }) {
     );
 
   return (
-    <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl shadow p-6">
+    <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl shadow p-6 relative">
+      {/* Flash message */}
+      {successMsg && (
+        <div className="fixed top-5 right-5 z-50 animate-fade-in-down">
+          <div className="backdrop-blur-md bg-green-600/80 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            <span>{successMsg}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Delete modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 relative">
+            <div className="flex items-center gap-2 text-red-600 mb-3">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-lg font-semibold">Confirm Deletion</h3>
+            </div>
+            <p className="text-gray-700 mb-5">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold">{productToDelete?.title}</span>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {showEditModal && selectedProduct && (
+        <EditProductModal
+          product={selectedProduct}
+          onClose={() => setShowEditModal(false)}
+          onUpdated={() => window.location.reload()}
+        />
+      )}
+
+    {/* Map modal with Leaflet Draw */}
+{mapModalProduct && (
+  <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="relative w-11/12 h-5/6 bg-white rounded-lg overflow-hidden shadow-lg">
+      {/* Close button */}
+      <button
+        onClick={() => setMapModalProduct(null)}
+        className="absolute top-3 right-3 z-[1000] bg-white shadow-md rounded-full p-2 hover:bg-gray-100 border"
+      >
+        <X className="w-5 h-5 text-gray-700" />
+      </button>
+
+      {/* Leaflet Draw Map */}
+      <LeafletMapWithDraw
+        center={[mapModalProduct.lat, mapModalProduct.lng]}
+        radius={mapModalProduct.radius || 300}
+        onCircleChange={({ lat, lng, radius }) => {
+          setProducts((prev) =>
+            prev.map((p) =>
+              p.product_id === mapModalProduct.product_id
+                ? { ...p, lat, lng, radius }
+                : p
+            )
+          );
+          setMapModalProduct((prev) => ({ ...prev, lat, lng, radius }));
+        }}
+        style={{ height: "100%" }}
+      />
+
+      {/* Save Location button */}
+      <div className="absolute bottom-4 right-4 z-[1100]">
+        <button
+          onClick={async () => {
+            if (!mapModalProduct) return;
+            const { error } = await supabase
+              .from("products")
+              .update({
+                lat: mapModalProduct.lat,
+                lng: mapModalProduct.lng,
+                radius: mapModalProduct.radius,
+              })
+              .eq("product_id", mapModalProduct.product_id);
+
+            if (error) {
+              alert("❌ Failed to save location: " + error.message);
+            } else {
+              setSuccessMsg("✅ Location updated!");
+              setMapModalProduct(null);
+            }
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg transition"
+        >
+          Save Location
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* Header */}
       <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
         <List className="w-6 h-6" /> My Product Listings
       </h2>
@@ -120,38 +274,42 @@ export default function MyListings({ loadPage }) {
               key={product.product_id}
               className="border border-gray-200 rounded-xl shadow-sm p-4 hover:shadow-md transition"
             >
-              {/* Product Image */}
-              <div className="relative mb-2">
-                {product.product_images?.length ? (
-                  <>
-                    <img
-                      src={product.product_images[0].img_path}
-                      alt={product.title}
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <div className="flex gap-1 mt-2 overflow-x-auto">
-                      {product.product_images.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={img.img_path}
-                          className="w-16 h-16 object-cover rounded cursor-pointer border border-gray-300"
-                          onClick={(e) => {
-                            e.target
-                              .closest("div")
-                              .previousSibling.setAttribute("src", img.img_path);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded-lg text-gray-400">
-                    No Image
-                  </div>
-                )}
-              </div>
+              {/* Image */}
+              {product.product_images?.length ? (
+                <img
+                  src={product.product_images[0].img_path}
+                  alt={product.title}
+                  className="w-full h-48 object-cover rounded-lg mb-2"
+                />
+              ) : (
+                <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded-lg text-gray-400 mb-2">
+                  No Image
+                </div>
+              )}
 
-              {/* Product Info */}
+             {/* Map preview */}
+{product.lat &&
+ product.lng &&
+ !mapModalProduct &&
+ !showEditModal && ( // <- Add this check
+  <div
+    className="w-full h-36 mb-2 rounded-lg overflow-hidden border border-gray-200 shadow-sm relative cursor-pointer"
+    onClick={() => setMapModalProduct(product)}
+  >
+    <div className="absolute top-2 left-2 flex items-center gap-1 text-gray-600 bg-white/70 px-2 py-1 rounded">
+      <MapPin className="w-4 h-4" /> Preview
+    </div>
+    <LeafletMapWithDraw
+      center={[product.lat, product.lng]}
+      radius={product.radius || 300}
+      previewOnly={true}
+      style={{ width: "100%", height: "100%" }}
+    />
+  </div>
+)}
+
+
+              {/* Info */}
               <h3 className="font-semibold text-lg mb-1">{product.title}</h3>
               <p className="text-sm text-gray-600 mb-2">
                 {product.categories?.cat_name || "Uncategorized"}
@@ -172,13 +330,13 @@ export default function MyListings({ loadPage }) {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => alert("Open edit modal (coming soon)")}
-                    className="p-2 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition"
+                    onClick={() => handleEdit(product)}
+                    className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
                   >
                     <Edit size={16} />
                   </button>
                   <button
-                    onClick={() => handleDelete(product.product_id)}
+                    onClick={() => confirmDelete(product)}
                     className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
                   >
                     <Trash2 size={16} />
@@ -186,10 +344,12 @@ export default function MyListings({ loadPage }) {
                 </div>
               </div>
 
-              {/* Additional Info */}
               <div className="text-sm text-gray-500 mt-3">
                 Condition: {product.condition || "N/A"} <br />
-                Location: {product.location || "N/A"} <br />
+                {product.lat && product.lng
+                  ? `Location: ${product.lat.toFixed(5)}, ${product.lng.toFixed(5)}`
+                  : "Location: N/A"}
+                <br />
                 <span className="text-xs text-gray-400">
                   Posted on{" "}
                   {new Date(product.created_at).toLocaleDateString("en-PH", {

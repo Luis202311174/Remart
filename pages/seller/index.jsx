@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { List, PlusCircle, ShoppingBag, Settings } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -17,10 +17,12 @@ const AddProduct = dynamic(() => import("./add-product"), {
 const SellerOrdersPage = dynamic(() => import("./orders"), {
   loading: () => <p className="text-gray-500">Loading orders...</p>,
 });
+const SellerSettingsPage = dynamic(() => import("./settings"), {
+  loading: () => <p className="text-gray-500">Loading orders...</p>,
+});
 
 export default function SellerDashboard() {
   const router = useRouter();
-  const supabase = createClientComponentClient(); // ✅ new helper
   const [user, setUser] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
   const [content, setContent] = useState(
@@ -68,11 +70,7 @@ export default function SellerDashboard() {
         setContent(<SellerOrdersPage />);
         break;
       case "settings":
-        setContent(
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm flex-1">
-            ⚙️ Seller account settings page.
-          </div>
-        );
+        setContent(<SellerSettingsPage />);
         break;
       default:
         setContent(

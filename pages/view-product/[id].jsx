@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import ItemGrid from "@/components/ItemGrid";
 import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { fetchProductById, fetchSimilarProducts } from "@/lib/productFetcher";
 
 export async function getServerSideProps(context) {
@@ -50,7 +50,6 @@ export async function getServerSideProps(context) {
 
 export default function ProductPage({ product, similar = [], user }) {
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   const [mainImage, setMainImage] = useState(product?.images?.[0]?.img_path || "");
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -69,7 +68,7 @@ export default function ProductPage({ product, similar = [], user }) {
         setUserId(user?.id || null);
       })();
     }
-  }, [supabase, userId]);
+  }, [userId]);
 
   // 🔹 Check if product is already saved/bookmarked
   useEffect(() => {

@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabaseClient";
 import { PackageX, ShoppingBag } from "lucide-react";
 
 export default function SellerOrdersPage() {
-  const supabase = createClientComponentClient(); // ✅ Client scoped to current session
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

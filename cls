@@ -23,7 +23,6 @@ D	pages/cart.jsx
 D	pages/index.jsx
 D	pages/login.jsx
 D	pages/seller/add-product.jsx
-D	pages/seller/edit-product/[id].jsx
 D	pages/seller/index.jsx
 D	pages/seller/my-listings.jsx
 D	pages/seller/orders.jsx
