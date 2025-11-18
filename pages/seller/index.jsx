@@ -16,15 +16,12 @@ const AddProduct = dynamic(() => import("./add-product"), {
 });
 
 // Placeholder settings page
-const SellerSettingsPage = () => (
-  <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm">
-    <h2 className="text-2xl font-bold mb-3">Settings</h2>
-    <p className="text-gray-700">Manage your seller settings here.</p>
-  </div>
+const SellerSettingsPage = dynamic(() => import ( "./settings"
+loading: () => <p className="text-gray-500">Loading listings...</p>,
 );
 
 const SellerSettingsPage = dynamic(() => import("./settings"), {
-  loading: () => <p className="text-gray-500">Loading add product form...</p>,
+  loading: () => <p className="text-gray-500">Loading settings form...</p>,
 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
