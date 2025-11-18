@@ -4,38 +4,62 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
-/**
- * ItemCard Component (Production Ready)
- * - Uses optimistic UI
- * - Preloaded SSR "saved" state supported
- */
-export default function ItemCard({ item, savedIds = [] }) {
+/* 🗺️ Reverse geocode helper with caching */
+const geocodeCache = new Map(); // cache lat/lng => address
 
-  // ✅ Initialize state based on preloaded server data
+async function reverseGeocode(lat, lng) {
+  if (!lat || !lng) return null;
+
+  const key = `${lat},${lng}`;
+  if (geocodeCache.has(key)) return geocodeCache.get(key);
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+    );
+    const data = await res.json();
+    if (!data.address) return null;
+
+    const parts = [
+      data.address.suburb || data.address.neighbourhood,
+      data.address.city || data.address.town || data.address.village,
+      data.address.state,
+      data.address.country,
+    ].filter(Boolean);
+
+    const addr = parts.join(", ");
+    geocodeCache.set(key, addr);
+    return addr;
+  } catch {
+    return null;
+  }
+}
+
+export default function ItemCard({ item, savedIds = [] }) {
   const [saved, setSaved] = useState(savedIds.includes(item.id));
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
   const [checking, setChecking] = useState(true);
+  const [address, setAddress] = useState(item.location || "Not specified");
 
-  /* 🧠 Step 1: Get logged-in user ID */
+  /* Step 1: Get logged-in user ID */
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUserId(user?.id || null);
-      } catch (err) {
-        console.warn("Unable to get logged-in user:", err.message);
+      } catch {
+        setUserId(null);
       } finally {
         setChecking(false);
       }
     };
     fetchUser();
-  }, [supabase]);
+  }, []);
 
-  /* 🧠 Step 2: If no preloaded saved state, check DB */
+  /* Step 2: Check if already saved in DB */
   useEffect(() => {
-    if (!userId || saved) return; // Skip if already known
-
+    if (!userId || saved) return;
     const checkIfSaved = async () => {
       try {
         const { data, error } = await supabase
@@ -44,21 +68,16 @@ export default function ItemCard({ item, savedIds = [] }) {
           .eq("buyer_id", userId)
           .eq("product_id", item.id)
           .maybeSingle();
-
-        if (error) throw error;
-        if (data) setSaved(true);
-      } catch (err) {
-        console.error("Error checking saved item:", err.message);
-      }
+        if (!error && data) setSaved(true);
+      } catch {}
     };
-
     checkIfSaved();
-  }, [userId, item.id, saved, supabase]);
+  }, [userId, item.id, saved]);
 
-  /* ❤️ Step 3: Handle Save (Optimistic UI + API sync) */
+  /* Step 3: Handle Save */
   const handleSaveItem = async () => {
     if (saved || loading) return;
-    setSaved(true); // ✅ Optimistic update
+    setSaved(true);
     setLoading(true);
 
     try {
@@ -78,16 +97,26 @@ export default function ItemCard({ item, savedIds = [] }) {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Failed to save item.");
     } catch (err) {
-      console.error("Save Item error:", err);
-      setSaved(false); // ❌ Revert on failure
+      setSaved(false);
       alert(err.message || "Could not save item.");
     } finally {
       setLoading(false);
     }
   };
 
-  /* 🖼️ Step 4: Handle image gracefully */
+  /* Step 4: Image fallback */
   const imageSrc = item.image || "https://placehold.co/400x300?text=No+Image";
+
+  /* Step 5: Reverse geocode if lat/lng exist */
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (item.lat != null && item.lng != null) {
+        const addr = await reverseGeocode(item.lat, item.lng);
+        setAddress(addr || item.location || "Not specified");
+      }
+    };
+    fetchAddress();
+  }, [item.lat, item.lng, item.location]);
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col hover:shadow-md transition-shadow duration-200">
@@ -122,26 +151,19 @@ export default function ItemCard({ item, savedIds = [] }) {
       {/* Title + Price */}
       <h3 className="text-lg font-medium mb-1 truncate">{item.title}</h3>
       <p className="mb-1 font-semibold">
-        {new Intl.NumberFormat("en-PH", {
-          style: "currency",
-          currency: "PHP",
-        }).format(item.price)}
+        {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(item.price)}
         {item.original_price && (
           <span className="line-through text-gray-400 ml-2">
-            {new Intl.NumberFormat("en-PH", {
-              style: "currency",
-              currency: "PHP",
-            }).format(item.original_price)}
+            {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
+              item.original_price
+            )}
           </span>
-        )}
-        {item.discount && (
-          <span className="text-green-600 ml-2">{item.discount}% off</span>
         )}
       </p>
 
       {/* Meta Info */}
       <p className="text-sm text-gray-600 mb-1">Condition: {item.condition}</p>
-      <p className="text-sm text-gray-600 mb-1">📍 {item.location}</p>
+      <p className="text-sm text-gray-600 mb-1">📍 {address}</p>
       <p className="text-xs text-gray-500 mb-3">
         🕑 {item.created_at} • ⭐ {item.rating} • {item.seller_label}
       </p>
@@ -158,9 +180,7 @@ export default function ItemCard({ item, savedIds = [] }) {
           onClick={handleSaveItem}
           disabled={loading || saved}
           className={`flex-1 py-2 px-3 rounded-lg transition ${
-            saved
-              ? "bg-green-500 text-white cursor-default"
-              : "bg-black text-white hover:bg-gray-800"
+            saved ? "bg-green-500 text-white cursor-default" : "bg-black text-white hover:bg-gray-800"
           } disabled:opacity-50`}
         >
           {loading ? "Saving..." : saved ? "Saved" : "Save Item"}

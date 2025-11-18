@@ -10,7 +10,14 @@ import ItemGrid from "@/components/ItemGrid";
 
 export default function SearchPage({ user = null }) {
   const searchParams = useSearchParams();
+
+  // Extract all filter params from URL
   const q = searchParams.get("q") || "";
+  const category = searchParams.get("category") || "all";
+  const condition = searchParams.get("condition") || "all";
+  const min_price = searchParams.get("min_price") || "";
+  const max_price = searchParams.get("max_price") || "";
+  const sort = searchParams.get("sort") || "newest";
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +26,14 @@ export default function SearchPage({ user = null }) {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        // ✅ This will detect the logged-in seller inside productFetcher
         const { data, error } = await fetchFilteredProducts({
           supabase,
           search: q,
+          category,
+          condition,
+          minPrice: min_price,
+          maxPrice: max_price,
+          sort,
           limit: 50,
         });
 
@@ -40,7 +51,7 @@ export default function SearchPage({ user = null }) {
     };
 
     fetchProducts();
-  }, [q, supabase]);
+  }, [q, category, condition, min_price, max_price, sort]); // 🔑 re-fetch when any filter changes
 
   return (
     <main className="bg-white text-gray-900 font-sans min-h-screen">

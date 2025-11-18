@@ -22,7 +22,6 @@ export async function getServerSideProps(context) {
     const product = await fetchProductById(id, context);
     let similar = product ? await fetchSimilarProducts(product.cat_id, id, 4, context) : [];
 
-    // 🧩 Normalize "similar" items to match main product structure
     similar = similar.map((item) => ({
       ...item,
       title: item.title || item.product_name || "Untitled",
@@ -63,7 +62,6 @@ export default function ProductPage({ product, similar = [], user }) {
 
   const images = product?.images || [];
 
-  // 🔹 If no user from SSR, get client-side
   useEffect(() => {
     if (!userId) {
       (async () => {
@@ -73,7 +71,6 @@ export default function ProductPage({ product, similar = [], user }) {
     }
   }, [userId]);
 
-  // 🔹 Check if product is already saved/bookmarked
   useEffect(() => {
     if (!userId || !product?.id) return;
     const checkIfSaved = async () => {
@@ -95,7 +92,6 @@ export default function ProductPage({ product, similar = [], user }) {
     checkIfSaved();
   }, [userId, product?.id, supabase]);
 
-  // ❤️ Save item handler
   const handleSaveItem = async () => {
     if (!userId) return router.push("/login");
     if (saved || loading) return;
@@ -137,32 +133,42 @@ export default function ProductPage({ product, similar = [], user }) {
 
   return (
     <>
-      <Header user={user} />
-      <div className="max-w-[1200px] mx-auto px-4 mt-5 grid md:grid-cols-2 gap-10">
-        {/* 🖼️ Product Images */}
+      <Header user={user} className="z-50" />
+
+      <main className="max-w-[1200px] mx-auto px-4 mt-8 grid md:grid-cols-2 gap-10">
+        {/* Product Images */}
         <div>
           {images.length ? (
             <>
               <div
-                className="rounded-xl overflow-hidden border border-gray-200 mb-3 cursor-pointer"
+                className="rounded-xl overflow-hidden border border-gray-200 mb-3 cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => setLightboxIndex(lightboxIndex)}
               >
-                <img src={mainImage} className="w-full h-80 object-cover" alt={product.title} />
+                <img
+                  src={mainImage}
+                  alt={product.title}
+                  className="w-full h-80 md:h-[400px] object-cover transition-transform hover:scale-105"
+                />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto">
                 {images.map((img, idx) => (
-                  <img
+                  <button
                     key={img.img_path}
-                    src={img.img_path}
-                    className={`w-20 h-20 object-cover rounded-md border cursor-pointer hover:opacity-75 ${
-                      idx === lightboxIndex ? "border-black" : ""
-                    }`}
                     onClick={() => {
                       setMainImage(img.img_path);
                       setLightboxIndex(idx);
                     }}
-                    alt="Thumbnail"
-                  />
+                    className={`flex-shrink-0 w-20 h-20 rounded-md border transition ${
+                      idx === lightboxIndex ? "border-black" : "border-gray-300 hover:border-black"
+                    } focus:outline-none focus:ring-2 focus:ring-black`}
+                    aria-label={`View image ${idx + 1}`}
+                  >
+                    <img
+                      src={img.img_path}
+                      className="w-full h-full object-cover rounded-md"
+                      alt="Thumbnail"
+                    />
+                  </button>
                 ))}
               </div>
             </>
@@ -173,32 +179,36 @@ export default function ProductPage({ product, similar = [], user }) {
           )}
         </div>
 
-        {/* 📝 Product Details */}
-        <div>
-          <h1 className="text-3xl font-semibold mb-2">{product.title}</h1>
-          <p className="text-gray-600 mb-4">
+        {/* Product Details */}
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">{product.title}</h1>
+          <p className="text-gray-600 mb-2">
             {product.category} • {product.condition}
           </p>
-          <p className="text-2xl font-bold mb-2">₱{product.price.toLocaleString()}</p>
-          {product.original_price && (
-            <p className="line-through text-gray-400 mb-4">
-              ₱{product.original_price.toLocaleString()}
+
+          <div className="flex items-center gap-4">
+            <p className="text-2xl md:text-3xl font-bold text-black">
+              ₱{product.price.toLocaleString()}
             </p>
-          )}
-          <p className="mb-5 text-gray-700 leading-relaxed">{product.description}</p>
+            {product.original_price && (
+              <p className="line-through text-gray-400">
+                ₱{product.original_price.toLocaleString()}
+              </p>
+            )}
+          </div>
 
-          {/* 🌍 Product Location */}
-          <div className="mb-5">
+          <p className="text-gray-700 leading-relaxed">{product.description}</p>
+
+          {/* Product Location */}
+          <div className="bg-white p-4 rounded-xl shadow-md mb-4 relative z-0">
             <p className="font-semibold mb-2">📍 Pickup Location</p>
-
             {product.lat && product.lng ? (
-              <div className="w-full h-64 rounded-lg overflow-hidden border">
+              <div className="w-full h-64 rounded-lg overflow-hidden border relative z-0">
                 <LeafletMap
                   center={[product.lat, product.lng]}
-                  radius={300}           // Or fetch from DB if stored
-                  previewOnly={true}     // 🔥 disables edit controls
-                  show={true}
-                  style={{ height: "100%" }}
+                  radius={300}
+                  previewOnly={true}
+                  style={{ height: "100%", zIndex: 0 }}
                 />
               </div>
             ) : (
@@ -206,21 +216,24 @@ export default function ProductPage({ product, similar = [], user }) {
             )}
           </div>
 
-          <div className="mb-5">
-            <p className="font-semibold">👤 Seller:</p>
-            <p>{product.seller_label} (⭐ {product.rating})</p>
+          {/* Seller Info */}
+          <div className="bg-white p-4 rounded-xl shadow-md mb-4">
+            <p className="font-semibold mb-1">👤 Seller:</p>
+            <p>
+              {product.seller_label} (⭐ {product.rating})
+            </p>
           </div>
 
-          {/* ❤️ Save & Contact Buttons */}
-          <div className="flex gap-3">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button
               onClick={handleSaveItem}
               disabled={loading || saved}
-              className={`flex-1 py-3 rounded-lg transition ${
+              className={`flex-1 py-3 rounded-lg font-medium transition ${
                 saved
                   ? "bg-green-500 text-white cursor-default"
                   : "bg-black text-white hover:bg-gray-800"
-              } disabled:opacity-50`}
+              } disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-black`}
             >
               {loading ? "Saving..." : saved ? "Saved" : "Save Item"}
             </button>
@@ -239,25 +252,28 @@ export default function ProductPage({ product, similar = [], user }) {
                   })
                 )
               }
-              className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition"
+              className="flex-1 py-3 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 font-medium transition focus:outline-none focus:ring-2 focus:ring-black"
             >
               Contact Seller
             </button>
 
             <button
               onClick={() => router.back()}
-              className="flex-1 bg-gray-100 text-black py-3 rounded-lg hover:bg-gray-200 transition"
+              className="flex-1 py-3 rounded-lg bg-gray-100 text-black hover:bg-gray-200 font-medium transition focus:outline-none focus:ring-2 focus:ring-black"
             >
               Back to Browsing
             </button>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* 🛍️ Similar Products */}
+      {/* Separator Line */}
+      <div className="max-w-[1200px] mx-auto my-12 border-t border-gray-300"></div>
+
+      {/* Similar Products */}
       {similar.length > 0 && (
-        <div className="mt-12 max-w-[1200px] mx-auto px-4">
-          <h2 className="text-xl font-semibold mb-4">Similar Items</h2>
+        <div className="max-w-[1200px] mx-auto px-4 mb-12">
+          <h2 className="text-2xl font-semibold mb-4">Similar Items</h2>
           <ItemGrid items={similar} />
         </div>
       )}

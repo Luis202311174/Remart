@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { List, PlusCircle, ShoppingBag, Settings } from "lucide-react";
+import { List, PlusCircle, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import Header from "@/components/Header";
 
 // Lazy-loaded sub-pages
@@ -14,12 +14,14 @@ const MyListings = dynamic(() => import("./my-listings"), {
 const AddProduct = dynamic(() => import("./add-product"), {
   loading: () => <p className="text-gray-500">Loading add product form...</p>,
 });
-const SellerOrdersPage = dynamic(() => import("./orders"), {
-  loading: () => <p className="text-gray-500">Loading orders...</p>,
-});
-const SellerSettingsPage = dynamic(() => import("./settings"), {
-  loading: () => <p className="text-gray-500">Loading orders...</p>,
-});
+
+// Placeholder settings page
+const SellerSettingsPage = () => (
+  <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm">
+    <h2 className="text-2xl font-bold mb-3">Settings</h2>
+    <p className="text-gray-700">Manage your seller settings here.</p>
+  </div>
+);
 
 export default function SellerDashboard() {
   const router = useRouter();
@@ -31,8 +33,8 @@ export default function SellerDashboard() {
       <p className="text-gray-700">Welcome to your seller dashboard.</p>
     </div>
   );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ✅ Secure: Check Supabase session on mount
   useEffect(() => {
     const getSession = async () => {
       const {
@@ -41,19 +43,17 @@ export default function SellerDashboard() {
       } = await supabase.auth.getUser();
 
       if (error || !user) {
-        console.warn("⚠️ No logged-in session:", error?.message);
-        router.push("/login"); // redirect to login
+        router.push("/login");
       } else {
         setUser(user);
       }
     };
     getSession();
-  }, [supabase, router]);
+  }, [router]);
 
   const menuItems = [
     { key: "my-listings", label: "My Listings", icon: List },
     { key: "add-product", label: "Add Product", icon: PlusCircle },
-    { key: "orders", label: "Orders", icon: ShoppingBag },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -65,9 +65,6 @@ export default function SellerDashboard() {
         break;
       case "add-product":
         setContent(<AddProduct />);
-        break;
-      case "orders":
-        setContent(<SellerOrdersPage />);
         break;
       case "settings":
         setContent(<SellerSettingsPage />);
@@ -93,36 +90,50 @@ export default function SellerDashboard() {
     <>
       <Header hideSearch />
 
-      <div className="flex h-screen overflow-hidden bg-white text-gray-900 font-sans">
+      <div className="flex h-screen overflow-hidden bg-white text-gray-900 font-sans relative">
+        {/* Mobile Sidebar Toggle */}
+        <button
+          className="md:hidden fixed top-24 left-2 z-50 p-2 bg-gray-100 border border-gray-300 rounded-full shadow hover:bg-gray-200 transition"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+        </button>
+
         {/* Sidebar */}
         <aside
-          className="w-64 bg-gray-50 border-r border-gray-200 p-5 flex-shrink-0
-                     fixed top-16 bottom-0 overflow-y-auto left-0"
+          className={`
+            bg-gray-50 border-r border-gray-200 p-5 w-64 flex-shrink-0
+            fixed top-16 bottom-0 left-0 z-40
+            transform transition-transform duration-300 ease-in-out
+            md:translate-x-0
+            ${sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"}
+          `}
         >
-          <h3 className="text-xl font-semibold mb-4">Seller Menu</h3>
-          <nav className="flex flex-col gap-2">
+          <h3 className="text-xl font-semibold mb-6">Seller Menu</h3>
+          <nav className="flex flex-col gap-3">
             {menuItems.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={(e) => {
                   e.preventDefault();
                   loadPage(key);
+                  if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
-                className={`px-3 py-2 flex items-center gap-2 text-left rounded transition ${
+                className={`px-3 py-2 flex items-center gap-3 text-left rounded transition ${
                   activePage === key
                     ? "bg-gray-200 font-semibold"
                     : "hover:bg-gray-100"
                 }`}
               >
-                <Icon size={18} />
-                {label}
+                <Icon size={20} />
+                <span className="text-sm md:text-base">{label}</span>
               </button>
             ))}
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 ml-64 overflow-y-auto overflow-x-hidden h-screen p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden h-screen p-6 ml-0 md:ml-64 transition-all duration-300">
           {content}
         </main>
       </div>
