@@ -151,6 +151,7 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
         <div className="flex-1 bg-white relative">
           {selectedChat ? (
             <ChatWindow
+              key={`${selectedChat.chat_id || "new"}-${selectedChat.buyer_auth_id}-${selectedChat.seller_auth_id}-${selectedChat.product_id}`}
               chatId={selectedChat.chat_id}
               buyerAuthId={selectedChat.buyer_auth_id}
               sellerAuthId={selectedChat.seller_auth_id}
