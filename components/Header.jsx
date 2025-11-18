@@ -15,6 +15,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { faRobot } from "@fortawesome/free-solid-svg-icons";
+import ChatbotLayout from "@/components/ChatbotLayout";
 
 export default function Header({ logoOnly = false, hideSearch = false }) {
   const router = useRouter();
@@ -28,6 +30,8 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatTarget, setChatTarget] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [chatbotContext, setChatbotContext] = useState(null);
 
   // 🔹 Get current user
   useEffect(() => {
@@ -79,6 +83,15 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
     };
     window.addEventListener("openChat", handler);
     return () => window.removeEventListener("openChat", handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      setChatbotContext(e.detail || null); // store context (e.g., product info)
+      setChatbotOpen(true);
+    };
+    window.addEventListener("openChatbot", handler);
+    return () => window.removeEventListener("openChatbot", handler);
   }, []);
 
   const handleLogout = async () => {
@@ -234,6 +247,18 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
                 >
                   <FontAwesomeIcon icon={faComments} />
                 </button>
+
+                <button
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("openChatbot", { detail: {} }) // context added on product page
+                  )
+                }
+                className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition ml-2"
+                title="AI Assistant"
+              >
+                <FontAwesomeIcon icon={faRobot} />
+              </button>
               </>
             ) : (
               <>
@@ -360,6 +385,14 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
 
       {/* Chat Modal */}
       {chatOpen && <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />}
+
+      {/* Chatbot Modal */}
+      {chatbotOpen && (
+        <ChatbotLayout
+          onClose={() => setChatbotOpen(false)}
+          productData={chatbotContext?.product || null}
+        />
+      )}
 
       {/* Become Seller Modal */}
       {showSellerModal && !isSeller && (
