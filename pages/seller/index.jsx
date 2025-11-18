@@ -15,14 +15,10 @@ const AddProduct = dynamic(() => import("./add-product"), {
   loading: () => <p className="text-gray-500">Loading add product form...</p>,
 });
 
-// Placeholder settings page
-const SellerSettingsPage = dynamic(() => import ( "./settings"
-loading: () => <p className="text-gray-500">Loading listings...</p>,
-);
-
 const SellerSettingsPage = dynamic(() => import("./settings"), {
   loading: () => <p className="text-gray-500">Loading settings form...</p>,
 });
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
