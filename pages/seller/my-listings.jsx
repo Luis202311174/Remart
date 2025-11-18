@@ -69,6 +69,7 @@ export default function MyListings({ loadPage }) {
           price,
           original_price,
           condition,
+          status,
           lat,
           lng,
           radius,
@@ -192,64 +193,64 @@ export default function MyListings({ loadPage }) {
         />
       )}
 
-    {/* Map modal with Leaflet Draw */}
-{mapModalProduct && (
-  <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
-    <div className="relative w-11/12 h-5/6 bg-white rounded-lg overflow-hidden shadow-lg">
-      {/* Close button */}
-      <button
-        onClick={() => setMapModalProduct(null)}
-        className="absolute top-3 right-3 z-[1000] bg-white shadow-md rounded-full p-2 hover:bg-gray-100 border"
-      >
-        <X className="w-5 h-5 text-gray-700" />
-      </button>
+      {/* Map modal with Leaflet Draw */}
+      {mapModalProduct && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="relative w-11/12 h-5/6 bg-white rounded-lg overflow-hidden shadow-lg">
+            {/* Close button */}
+            <button
+              onClick={() => setMapModalProduct(null)}
+              className="absolute top-3 right-3 z-[1000] bg-white shadow-md rounded-full p-2 hover:bg-gray-100 border"
+            >
+              <X className="w-5 h-5 text-gray-700" />
+            </button>
 
-      {/* Leaflet Draw Map */}
-      <LeafletMapWithDraw
-        center={[mapModalProduct.lat, mapModalProduct.lng]}
-        radius={mapModalProduct.radius || 300}
-        onCircleChange={({ lat, lng, radius }) => {
-          setProducts((prev) =>
-            prev.map((p) =>
-              p.product_id === mapModalProduct.product_id
-                ? { ...p, lat, lng, radius }
-                : p
-            )
-          );
-          setMapModalProduct((prev) => ({ ...prev, lat, lng, radius }));
-        }}
-        style={{ height: "100%" }}
-      />
+            {/* Leaflet Draw Map */}
+            <LeafletMapWithDraw
+              center={[mapModalProduct.lat, mapModalProduct.lng]}
+              radius={mapModalProduct.radius || 300}
+              onCircleChange={({ lat, lng, radius }) => {
+                setProducts((prev) =>
+                  prev.map((p) =>
+                    p.product_id === mapModalProduct.product_id
+                      ? { ...p, lat, lng, radius }
+                      : p
+                  )
+                );
+                setMapModalProduct((prev) => ({ ...prev, lat, lng, radius }));
+              }}
+              style={{ height: "100%" }}
+            />
 
-      {/* Save Location button */}
-      <div className="absolute bottom-4 right-4 z-[1100]">
-        <button
-          onClick={async () => {
-            if (!mapModalProduct) return;
-            const { error } = await supabase
-              .from("products")
-              .update({
-                lat: mapModalProduct.lat,
-                lng: mapModalProduct.lng,
-                radius: mapModalProduct.radius,
-              })
-              .eq("product_id", mapModalProduct.product_id);
+            {/* Save Location button */}
+            <div className="absolute bottom-4 right-4 z-[1100]">
+              <button
+                onClick={async () => {
+                  if (!mapModalProduct) return;
+                  const { error } = await supabase
+                    .from("products")
+                    .update({
+                      lat: mapModalProduct.lat,
+                      lng: mapModalProduct.lng,
+                      radius: mapModalProduct.radius,
+                    })
+                    .eq("product_id", mapModalProduct.product_id);
 
-            if (error) {
-              alert("❌ Failed to save location: " + error.message);
-            } else {
-              setSuccessMsg("✅ Location updated!");
-              setMapModalProduct(null);
-            }
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg transition"
-        >
-          Save Location
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                  if (error) {
+                    alert("❌ Failed to save location: " + error.message);
+                  } else {
+                    setSuccessMsg("✅ Location updated!");
+                    setMapModalProduct(null);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg transition"
+              >
+                Save Location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -272,14 +273,23 @@ export default function MyListings({ loadPage }) {
           {products.map((product) => (
             <div
               key={product.product_id}
-              className="border border-gray-200 rounded-xl shadow-sm p-4 hover:shadow-md transition"
+              className="border border-gray-200 rounded-xl shadow-sm p-4 hover:shadow-md transition relative"
             >
+              {/* Sold Badge */}
+              {product.status === "sold" && (
+                <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded font-bold text-xs z-10">
+                  SOLD
+                </div>
+              )}
+
               {/* Image */}
               {product.product_images?.length ? (
                 <img
                   src={product.product_images[0].img_path}
                   alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg mb-2"
+                  className={`w-full h-48 object-cover rounded-lg mb-2 ${
+                    product.status === "sold" ? "opacity-60" : ""
+                  }`}
                 />
               ) : (
                 <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded-lg text-gray-400 mb-2">
@@ -287,34 +297,43 @@ export default function MyListings({ loadPage }) {
                 </div>
               )}
 
-             {/* Map preview */}
-{product.lat &&
- product.lng &&
- !mapModalProduct &&
- !showEditModal && ( // <- Add this check
-  <div
-    className="w-full h-36 mb-2 rounded-lg overflow-hidden border border-gray-200 shadow-sm relative cursor-pointer"
-    onClick={() => setMapModalProduct(product)}
-  >
-    <div className="absolute top-2 left-2 flex items-center gap-1 text-gray-600 bg-white/70 px-2 py-1 rounded">
-      <MapPin className="w-4 h-4" /> Preview
-    </div>
-    <LeafletMapWithDraw
-      center={[product.lat, product.lng]}
-      radius={product.radius || 300}
-      previewOnly={true}
-      style={{ width: "100%", height: "100%" }}
-    />
-  </div>
-)}
-
+              {/* Map preview (disabled if sold) */}
+              {product.lat &&
+                product.lng &&
+                !mapModalProduct &&
+                !showEditModal && (
+                  <div
+                    className={`w-full h-36 mb-2 rounded-lg overflow-hidden border border-gray-200 shadow-sm relative ${
+                      product.status === "sold"
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer"
+                    }`}
+                    onClick={() =>
+                      product.status !== "sold"
+                        ? setMapModalProduct(product)
+                        : null
+                    }
+                  >
+                    <div className="absolute top-2 left-2 flex items-center gap-1 text-gray-600 bg-white/70 px-2 py-1 rounded">
+                      <MapPin className="w-4 h-4" /> Preview
+                    </div>
+                    <LeafletMapWithDraw
+                      center={[product.lat, product.lng]}
+                      radius={product.radius || 300}
+                      previewOnly={true}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </div>
+                )}
 
               {/* Info */}
               <h3 className="font-semibold text-lg mb-1">{product.title}</h3>
               <p className="text-sm text-gray-600 mb-2">
                 {product.categories?.cat_name || "Uncategorized"}
               </p>
-              <p className="text-gray-700 mb-2 line-clamp-2">{product.description}</p>
+              <p className="text-gray-700 mb-2 line-clamp-2">
+                {product.description}
+              </p>
 
               {/* Price & Actions */}
               <div className="flex items-center justify-between mt-3">
@@ -341,6 +360,34 @@ export default function MyListings({ loadPage }) {
                   >
                     <Trash2 size={16} />
                   </button>
+
+                  {/* Sold Button */}
+                  {product.status !== "sold" && (
+                    <button
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from("products")
+                          .update({ status: "sold" })
+                          .eq("product_id", product.product_id);
+
+                        if (error) {
+                          alert("❌ Failed to mark as sold: " + error.message);
+                        } else {
+                          setProducts((prev) =>
+                            prev.map((p) =>
+                              p.product_id === product.product_id
+                                ? { ...p, status: "sold" }
+                                : p
+                            )
+                          );
+                          setSuccessMsg("✅ Product marked as sold!");
+                        }
+                      }}
+                      className="p-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
+                    >
+                      Sold
+                    </button>
+                  )}
                 </div>
               </div>
 

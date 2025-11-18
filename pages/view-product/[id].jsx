@@ -5,6 +5,9 @@ import ItemGrid from "@/components/ItemGrid";
 import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchProductById, fetchSimilarProducts } from "@/lib/productFetcher";
+import dynamic from "next/dynamic";
+
+const LeafletMap = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 
 export async function getServerSideProps(context) {
   try {
@@ -184,9 +187,23 @@ export default function ProductPage({ product, similar = [], user }) {
           )}
           <p className="mb-5 text-gray-700 leading-relaxed">{product.description}</p>
 
+          {/* 🌍 Product Location */}
           <div className="mb-5">
-            <p className="font-semibold">📍 Location:</p>
-            <p>{product.location}</p>
+            <p className="font-semibold mb-2">📍 Pickup Location</p>
+
+            {product.lat && product.lng ? (
+              <div className="w-full h-64 rounded-lg overflow-hidden border">
+                <LeafletMap
+                  center={[product.lat, product.lng]}
+                  radius={300}           // Or fetch from DB if stored
+                  previewOnly={true}     // 🔥 disables edit controls
+                  show={true}
+                  style={{ height: "100%" }}
+                />
+              </div>
+            ) : (
+              <p className="text-gray-500">No location provided.</p>
+            )}
           </div>
 
           <div className="mb-5">

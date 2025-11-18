@@ -138,13 +138,23 @@ export default function CartPage() {
                     </button>
 
                     <button
-                      onClick={() =>
-                        handleContactSeller(product.seller_auth_id, product.id)
-                      }
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition"
-                    >
-                      <MessageSquare size={18} /> Contact Seller
-                    </button>
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent("openChat", {
+                    detail: {
+                      seller_auth_id:
+                        product.seller?.auth_id ||
+                        product.seller_auth_id ||
+                        product.seller_id,
+                      product_id: product.id,
+                    },
+                  })
+                )
+              }
+              className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg hover:bg-gray-300 transition"
+            >
+              Contact Seller
+            </button>
 
                     <button
                       onClick={() => handleRemove(cart_id)}

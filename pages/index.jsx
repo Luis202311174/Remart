@@ -1,62 +1,81 @@
+// pages/index.jsx
 import Header from "../components/Header";
 import Filter from "../components/Filter";
-import ItemGrid from "../components/ItemGrid";
+import ItemCard from "../components/ItemCard"; // Updated ItemGrid -> ItemCard
 import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
-import { fetchFilteredProducts } from "@/lib/productFetcher"; // ✅ updated import
+import { fetchFilteredProducts } from "@/lib/productFetcher";
 
 export async function getServerSideProps(context) {
-  try {
-    const supabase = createPagesServerClient(context);
+  const supabase = createPagesServerClient(context);
+  const { data: { session } } = await supabase.auth.getSession();
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+  const user = session?.user || null;
+  const { category = "all", condition = "all", min_price = "", max_price = "", sort = "newest" } = context.query;
 
-    const user = session?.user || null;
+  const { data: items, error } = await fetchFilteredProducts({
+    supabase,
+    category,
+    condition,
+    minPrice: min_price,
+    maxPrice: max_price,
+    sort,
+    limit: 50,
+  });
 
-    // ✅ Extract filters from query params
-    const {
-      category = "all",
-      condition = "all",
-      min_price = "",
-      max_price = "",
-      sort = "newest",
-    } = context.query;
+  if (error) console.warn("⚠️ fetchFilteredProducts error:", error.message);
 
-    // ✅ Fetch products with filters (SSR-safe)
-    const { data: items, error } = await fetchFilteredProducts({
-      supabase,
-      category,
-      condition,
-      minPrice: min_price,
-      maxPrice: max_price,
-      sort,
-      limit: 50,
-    });
-
-    if (error) console.warn("⚠️ fetchFilteredProducts error:", error.message);
-
-    return { props: { items: items || [], user } };
-  } catch (error) {
-    console.error("❌ Error in getServerSideProps:", error.message || error);
-    return { props: { items: [], user: null } };
-  }
+  return { props: { items: items || [], user } };
 }
 
 export default function Home({ items = [], user }) {
   return (
-    <main className="bg-white text-gray-900 font-sans min-h-screen">
+    <main className="bg-gray-50 font-inter min-h-screen flex flex-col">
       <Header user={user} />
 
-      <div className="max-w-[1200px] mx-auto p-4">
-        <h2 className="text-2xl mb-1 font-semibold">Browse Items</h2>
-        <Filter itemCount={items.length} hasSearch={true} />
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Page Title */}
+        <div className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">
+            Browse Items
+          </h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
+            Discover items filtered for you. <span className="font-medium">{items.length}</span> items available.
+          </p>
+        </div>
 
+        {/* Filters */}
+        <div className="mb-8">
+          <Filter itemCount={items.length} hasSearch={true} />
+        </div>
+
+        {/* Items Grid */}
         {items.length > 0 ? (
-          <ItemGrid items={items} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {items.map((item) => (
+              <ItemCard key={item.id} item={item} />
+            ))}
+          </div>
         ) : (
-          <div className="text-center py-12 text-gray-500">
-            <p>No items found.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <svg
+              className="w-16 h-16 mb-4 text-gray-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19V6h13M9 6L5 3m0 0l4 3m-4-3v16"
+              />
+            </svg>
+            <h2 className="text-xl sm:text-2xl font-medium text-gray-500 mb-2">
+              No items found
+            </h2>
+            <p className="text-gray-400 text-sm sm:text-base">
+              Try adjusting your filters or search for something else.
+            </p>
           </div>
         )}
       </div>
