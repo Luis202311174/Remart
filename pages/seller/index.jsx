@@ -14,7 +14,6 @@ const MyListings = dynamic(() => import("./my-listings"), {
 const AddProduct = dynamic(() => import("./add-product"), {
   loading: () => <p className="text-gray-500">Loading add product form...</p>,
 });
-
 const SellerSettingsPage = dynamic(() => import("./settings"), {
   loading: () => <p className="text-gray-500">Loading settings form...</p>,
 });
@@ -55,13 +54,6 @@ const SellerSettingsPage = dynamic(() => import("./settings"), {
       case "settings":
         setContent(<SellerSettingsPage />);
         break;
-      default:
-        setContent(
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-3">Seller Dashboard</h2>
-            <p className="text-gray-700">Welcome to your seller dashboard.</p>
-          </div>
-        );
     }
   };
 
