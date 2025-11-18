@@ -22,7 +22,15 @@ export default function ChatWindow({
   const [partnerName, setPartnerName] = useState("Chat");
   const messagesEndRef = useRef(null);
 
-  // ✅ Get logged-in user
+  // Close on ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -31,7 +39,6 @@ export default function ChatWindow({
     fetchUser();
   }, [supabase]);
 
-  // ✅ Load chat messages
   useEffect(() => {
     if (!currentUser) return;
 
@@ -58,7 +65,6 @@ export default function ChatWindow({
     loadChat();
   }, [currentUser, chatId, buyerAuthId, sellerAuthId, productId]);
 
-  // ✅ Fetch chat partner's name
   useEffect(() => {
     const loadPartner = async () => {
       if (!chatId && !sellerAuthId) return;
@@ -91,7 +97,6 @@ export default function ChatWindow({
     loadPartner();
   }, [chatId, currentUser, buyerAuthId, sellerAuthId, supabase]);
 
-  // ✅ Subscribe to new messages
   useEffect(() => {
     if (!chatId) return;
     const unsub = subscribeToMessages(chatId, (msg) =>
@@ -100,12 +105,10 @@ export default function ChatWindow({
     return unsub;
   }, [chatId]);
 
-  // ✅ Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ✅ Send message
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || !currentUser) return;
@@ -131,40 +134,41 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white shadow-inner rounded-2xl overflow-hidden">
+
       {/* Header */}
-      <div className="flex justify-between items-center p-3 border-b bg-blue-600 text-white z-10">
+      <div className="flex justify-between items-center p-4 border-b bg-blue-600 text-white rounded-t-2xl z-10">
         <h3 className="font-semibold text-lg truncate flex-1">
           Chat with {partnerName}
         </h3>
         <button
           onClick={onClose}
-          className="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md"
+          className="bg-red-500 hover:bg-red-600 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-md focus:outline-none focus:ring-2 focus:ring-red-400"
         >
           ✕
         </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
         {messages.length === 0 ? (
-          <p className="text-gray-400 text-center mt-10">
+          <p className="text-gray-400 text-center mt-10 text-sm">
             No messages yet. Start the conversation!
           </p>
         ) : (
           messages.map((m) => (
             <div
               key={m.message_id}
-              className={`p-2 rounded-lg max-w-[80%] ${
+              className={`p-3 rounded-2xl max-w-[75%] break-words shadow-sm transition-all ${
                 m.sender_auth_id === currentUser?.id
                   ? "ml-auto bg-blue-600 text-white"
                   : "bg-gray-200 text-gray-800"
               }`}
             >
-              {m.sender_name ? (
+              {m.sender_name && (
                 <p className="text-xs text-gray-500 mb-1">{m.sender_name}</p>
-              ) : null}
-              {m.content}
+              )}
+              <p className="text-sm">{m.content}</p>
             </div>
           ))
         )}
@@ -172,18 +176,21 @@ export default function ChatWindow({
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="p-3 border-t flex gap-2">
+      <form
+        onSubmit={handleSend}
+        className="p-4 border-t flex gap-2 bg-white sticky bottom-0"
+      >
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+          className="flex-1 border rounded-2xl p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50"
+          className="bg-blue-600 text-white px-4 py-2 rounded-2xl hover:bg-blue-700 text-sm disabled:opacity-50 transition-colors"
         >
           Send
         </button>

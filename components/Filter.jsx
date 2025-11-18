@@ -18,24 +18,23 @@ export default function Filter({ itemCount = 0, hasSearch = true }) {
   // 🧭 Categories from DB
   const [categories, setCategories] = useState([]);
 
- useEffect(() => {
-  const fetchCategories = async () => {
-    const { data, error } = await supabase
-      .from("categories")
-      .select("cat_id, cat_name")
-      .order("cat_name", { ascending: true });
+  // Mobile collapse toggle
+  const [isOpen, setIsOpen] = useState(false);
 
-    if (!error && data) {
-      // Remove duplicates by cat_id (in case DB has dup names)
-      const unique = Array.from(
-        new Map(data.map((c) => [c.cat_id, c])).values()
-      );
-      setCategories(unique);
-    }
-  };
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("cat_id, cat_name")
+        .order("cat_name", { ascending: true });
 
-  fetchCategories();
-}, []);
+      if (!error && data) {
+        const unique = Array.from(new Map(data.map((c) => [c.cat_id, c])).values());
+        setCategories(unique);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // ✅ Handle Apply
   const handleSubmit = (e) => {
@@ -77,79 +76,107 @@ export default function Filter({ itemCount = 0, hasSearch = true }) {
 
   return (
     <div className="mb-6">
-      <p className="text-gray-500 mb-3">{itemCount} items found</p>
+      {/* Items count */}
+      <p className="text-gray-500 mb-2 text-sm md:text-base">{itemCount} items found</p>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
-        {/* Category (dynamic) */}
-      <select
-  value={category}
-  onChange={(e) => setCategory(e.target.value)}
-  className="p-2 border border-gray-300 rounded"
->
-  <option value="all">All Categories</option>
-  {categories.map((cat) => (
-    <option key={cat.cat_id} value={cat.cat_id}>
-      {cat.cat_name}
-    </option>
-  ))}
-</select>
-
-        {/* Condition */}
-        <select
-          value={condition}
-          onChange={(e) => setCondition(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        >
-          <option value="all">All Conditions</option>
-          <option value="New">New</option>
-          <option value="Like New">Like New</option>
-          <option value="Good">Good</option>
-          <option value="Fair">Fair</option>
-        </select>
-
-        {/* Price range */}
-        <input
-          type="number"
-          placeholder="Min ₱"
-          value={minPrice}
-          onChange={(e) => setMinPrice(e.target.value)}
-          className="p-2 border border-gray-300 rounded w-24"
-        />
-        <input
-          type="number"
-          placeholder="Max ₱"
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(e.target.value)}
-          className="p-2 border border-gray-300 rounded w-24"
-        />
-
-        {/* Sort */}
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="price_low">Price: Low to High</option>
-          <option value="price_high">Price: High to Low</option>
-        </select>
-
-        {/* Buttons */}
-        <button
-          type="submit"
-          className="bg-gray-200 border border-gray-300 px-3 py-2 rounded hover:bg-gray-300"
-        >
-          Apply
-        </button>
-
+      {/* Mobile Toggle */}
+      <div className="md:hidden mb-2">
         <button
           type="button"
-          onClick={handleClear}
-          className="bg-gray-200 border border-gray-300 px-3 py-2 rounded hover:bg-gray-300"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full bg-black text-white px-4 py-2 rounded flex justify-between items-center hover:bg-gray-800 transition"
         >
-          Clear Filters
+          Filters
+          <span className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>▼</span>
         </button>
+      </div>
+
+      {/* Filter Form */}
+      <form
+        onSubmit={handleSubmit}
+        className={`flex flex-wrap gap-3 items-end bg-white p-4 rounded-xl shadow-sm border border-gray-200
+          ${!isOpen && "hidden md:flex"} md:flex`}
+      >
+        {/* Category */}
+        <div className="flex-1 min-w-[120px]">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black focus:border-black"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat.cat_id} value={cat.cat_id}>
+                {cat.cat_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Condition */}
+        <div className="flex-1 min-w-[120px]">
+          <select
+            value={condition}
+            onChange={(e) => setCondition(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black focus:border-black"
+          >
+            <option value="all">All Conditions</option>
+            <option value="New">New</option>
+            <option value="Like New">Like New</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+          </select>
+        </div>
+
+        {/* Price Range */}
+        <div className="flex gap-2">
+          <input
+            type="number"
+            placeholder="Min ₱"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            className="w-20 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black focus:border-black"
+          />
+          <input
+            type="number"
+            placeholder="Max ₱"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            className="w-20 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black focus:border-black"
+          />
+        </div>
+
+        {/* Sort */}
+        <div className="flex-1 min-w-[140px]">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black focus:border-black"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="price_low">Price: Low to High</option>
+            <option value="price_high">Price: High to Low</option>
+          </select>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-2 flex-wrap w-full md:w-auto">
+          <button
+            type="submit"
+            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition w-full sm:w-auto"
+          >
+            Apply
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClear}
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition w-full sm:w-auto"
+          >
+            Clear Filters
+          </button>
+        </div>
       </form>
     </div>
   );

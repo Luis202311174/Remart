@@ -38,9 +38,6 @@ export default function Home({ items = [], user }) {
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">
             Browse Items
           </h1>
-          <p className="text-gray-600 mt-1 text-sm sm:text-base">
-            Discover items filtered for you. <span className="font-medium">{items.length}</span> items available.
-          </p>
         </div>
 
         {/* Filters */}
