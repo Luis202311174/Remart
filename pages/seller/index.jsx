@@ -18,8 +18,15 @@ const SellerSettingsPage = dynamic(() => import("./settings"), {
   loading: () => <p className="text-gray-500">Loading settings form...</p>,
 });
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export default function SellerDashboard() {
+  const router = useRouter();
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [activePage, setActivePage] = useState("my-listings");
+  const [content, setContent] = useState(<MyListings />);
+
+  // Authentication
   useEffect(() => {
     const getSession = async () => {
       const {
@@ -36,14 +43,17 @@ const SellerSettingsPage = dynamic(() => import("./settings"), {
     getSession();
   }, [router]);
 
+  // Menu Items
   const menuItems = [
     { key: "my-listings", label: "My Listings", icon: List },
     { key: "add-product", label: "Add Product", icon: PlusCircle },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
+  // Load selected page
   const loadPage = (page) => {
     setActivePage(page);
+
     switch (page) {
       case "my-listings":
         setContent(<MyListings loadPage={loadPage} />);
@@ -88,6 +98,7 @@ const SellerSettingsPage = dynamic(() => import("./settings"), {
           `}
         >
           <h3 className="text-xl font-semibold mb-6">Seller Menu</h3>
+
           <nav className="flex flex-col gap-3">
             {menuItems.map(({ key, label, icon: Icon }) => (
               <button
