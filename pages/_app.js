@@ -1,4 +1,3 @@
-// pages/_app.jsx
 "use client";
 
 import "@/styles/globals.css";
@@ -23,6 +22,7 @@ export default function App({ Component, pageProps }) {
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatbotContext, setChatbotContext] = useState(null);
 
+  // Global chat/chatbot event listeners
   useEffect(() => {
     const handleOpenChat = (e) => {
       setChatTarget(e.detail);
@@ -42,38 +42,53 @@ export default function App({ Component, pageProps }) {
     };
   }, []);
 
+  // Use page's custom layout if provided; otherwise wrap with default Layout
+  const getLayout = Component.getLayout || ((page) => <Layout>{page}</Layout>);
+
+  // Check if this page has hideChat property
+  const hideChat = Component.hideChat || false;
+
   return (
     <SessionContextProvider
       supabaseClient={supabaseClient}
       initialSession={pageProps.initialSession}
     >
       <div className="relative min-h-screen flex flex-col font-inter bg-gradient-to-br from-emerald-50 to-white">
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
+        {/* Page content */}
+        {getLayout(<Component {...pageProps} />)}
 
-        {/* Floating Chat & Chatbot Buttons */}
-        <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
-          <button
-            onClick={() => setChatOpen(true)}
-            className="p-4 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition"
-            title="Open Chat"
-          >
-            <FontAwesomeIcon icon={faComments} size="lg" />
-          </button>
+        {/* Floating chat & chatbot buttons */}
+        {!hideChat && (
+          <>
+            <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
+              <button
+                onClick={() => setChatOpen(true)}
+                className="p-4 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition"
+                title="Open Chat"
+              >
+                <FontAwesomeIcon icon={faComments} size="lg" />
+              </button>
 
-          <button
-            onClick={() => setChatbotOpen(true)}
-            className="p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition"
-            title="Open AI Assistant"
-          >
-            <FontAwesomeIcon icon={faRobot} size="lg" />
-          </button>
-        </div>
+              <button
+                onClick={() => setChatbotOpen(true)}
+                className="p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition"
+                title="Open AI Assistant"
+              >
+                <FontAwesomeIcon icon={faRobot} size="lg" />
+              </button>
+            </div>
 
-        {chatOpen && <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />}
-        {chatbotOpen && (
-          <ChatbotLayout onClose={() => setChatbotOpen(false)} productData={chatbotContext?.product || null} />
+            {/* Chat & Chatbot Modals */}
+            {chatOpen && (
+              <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />
+            )}
+            {chatbotOpen && (
+              <ChatbotLayout
+                onClose={() => setChatbotOpen(false)}
+                productData={chatbotContext?.product || null}
+              />
+            )}
+          </>
         )}
       </div>
     </SessionContextProvider>

@@ -5,7 +5,6 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { List, PlusCircle, Settings, ChevronLeft, ChevronRight } from "lucide-react";
-import Header from "@/components/Header";
 
 // Lazy-loaded sub-pages
 const MyListings = dynamic(() => import("./my-listings"), {

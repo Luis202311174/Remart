@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 
-export default function Signup() {
+function Signup() {
   const router = useRouter();
-  const supabase = useSupabaseClient(); // ✅ add this line
+  const supabase = useSupabaseClient();
 
   const [form, setForm] = useState({
     first_name: "",
@@ -84,7 +84,6 @@ export default function Signup() {
       if (updateError) console.error("Profile update failed:", updateError);
     }
 
-
     if (error) {
       setErrors({ general: error.message });
     } else {
@@ -95,7 +94,6 @@ export default function Signup() {
 
   return (
     <main className="bg-white min-h-screen">  
-
       <div className="flex justify-center px-5 py-10">
         <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md">
           <h2 className="text-2xl font-bold mb-8 text-center">Create Your Account</h2>
@@ -224,3 +222,9 @@ export default function Signup() {
     </main>
   );
 }
+
+// ✅ Skip default layout and header for this page
+Signup.getLayout = (page) => <>{page}</>;
+Signup.hideChat = true;
+
+export default Signup;
