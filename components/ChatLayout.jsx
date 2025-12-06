@@ -11,14 +11,12 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // ESC to close
   useEffect(() => {
     const handleEsc = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  // Fetch chats
   useEffect(() => {
     const fetchChats = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -71,20 +69,20 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
   }, [chatTarget]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end justify-end p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-[700px] h-[75vh] sm:h-[500px] flex flex-col md:flex-row bg-black text-white rounded-xl shadow-2xl overflow-hidden border border-green-600">
+    <div className="fixed inset-0 z-[9999] flex items-end justify-end p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="relative w-full max-w-[700px] h-[75vh] sm:h-[500px] flex flex-col md:flex-row bg-gradient-to-b from-gray-900 to-black text-white rounded-xl shadow-2xl overflow-hidden border border-green-600">
 
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-2 rounded-full bg-green-600 hover:bg-green-700 shadow-lg z-50 text-white"
+          className="absolute top-3 right-3 p-2 rounded-full bg-green-600 hover:bg-green-700 shadow-lg z-50 text-white transition"
         >
           ✕
         </button>
 
         {/* Mobile Sidebar Toggle */}
         <button
-          className="absolute top-3 left-3 md:hidden z-50 p-2 rounded-full bg-green-600 hover:bg-green-700 shadow-lg focus:outline-none"
+          className="absolute top-3 left-3 md:hidden z-50 p-2 rounded-full bg-green-600 hover:bg-green-700 shadow-lg focus:outline-none transition"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <List size={20} />
@@ -92,7 +90,7 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
 
         {/* Sidebar */}
         <div
-          className={`bg-gray-900 border-r border-green-600 md:flex flex-col w-full md:w-1/3 transition-transform duration-300 ${
+          className={`bg-gray-900 border-r border-green-600 md:flex flex-col w-full md:w-1/3 transition-transform duration-300 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500 scrollbar-track-transparent ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
@@ -148,6 +146,27 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
           )}
         </div>
       </div>
+
+      {/* Custom scrollbar */}
+      <style jsx>{`
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+          background-color: #16a34a;
+          border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background-color: #22c55e;
+        }
+        .scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: #16a34a transparent;
+        }
+      `}</style>
     </div>
   );
 }
