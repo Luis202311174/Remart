@@ -132,7 +132,6 @@ export default function MyListings({ loadPage }) {
     setShowEditModal(true);
   };
 
-  // Toggle product status (sold/unsold)
   const toggleSoldStatus = async (product, markSold) => {
     const newStatus = markSold ? "sold" : "available";
     const { error } = await supabase
@@ -218,10 +217,64 @@ export default function MyListings({ loadPage }) {
       {showEditModal && selectedProduct && (
         <EditProductModal
           product={selectedProduct}
-          darkTheme={true} // Pass dark theme prop
+          darkTheme={true}
           onClose={() => setShowEditModal(false)}
           onUpdated={() => window.location.reload()}
         />
+      )}
+
+      {/* Map Modal */}
+      {mapModalProduct && (
+        <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-lg shadow-xl overflow-hidden animate-slide-up">
+            <button
+              onClick={() => setMapModalProduct(null)}
+              className="absolute top-4 right-4 bg-gray-800/90 shadow-lg border rounded-full p-2 z-[300] hover:bg-gray-700 transition"
+            >
+              <X className="w-5 h-5 text-green-400" />
+            </button>
+
+            <LeafletMapWithDraw
+              center={[mapModalProduct.lat, mapModalProduct.lng]}
+              radius={mapModalProduct.radius || 300}
+              onCircleChange={({ lat, lng, radius }) => {
+                setProducts((prev) =>
+                  prev.map((p) =>
+                    p.product_id === mapModalProduct.product_id
+                      ? { ...p, lat, lng, radius }
+                      : p
+                  )
+                );
+                setMapModalProduct((prev) => ({ ...prev, lat, lng, radius }));
+              }}
+              style={{ height: "100%" }}
+            />
+
+            <div className="absolute bottom-6 right-6 z-[300]">
+              <button
+                onClick={async () => {
+                  const { error } = await supabase
+                    .from("products")
+                    .update({
+                      lat: mapModalProduct.lat,
+                      lng: mapModalProduct.lng,
+                      radius: mapModalProduct.radius,
+                    })
+                    .eq("product_id", mapModalProduct.product_id);
+
+                  if (error) alert("❌ Failed to save: " + error.message);
+                  else {
+                    setSuccessMsg("✅ Location updated!");
+                    setMapModalProduct(null);
+                  }
+                }}
+                className="px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg shadow-lg hover:bg-green-600 transition"
+              >
+                Save Location
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Header */}
@@ -236,7 +289,7 @@ export default function MyListings({ loadPage }) {
           <PackageX className="w-12 h-12 mx-auto text-gray-500 mb-3" />
           <p className="text-gray-400">You have no products yet.</p>
           <button
-            onClick={() => loadPage("add-product")}
+            onClick={() => loadPage?.("add-product")}
             className="mt-4 px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg hover:bg-green-600 transition"
           >
             Add Product
@@ -267,6 +320,32 @@ export default function MyListings({ loadPage }) {
               ) : (
                 <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 mb-3">
                   No Image
+                </div>
+              )}
+
+              {/* Map Preview */}
+              {product.lat && product.lng && (
+                <div
+                  onClick={() =>
+                    product.status !== "sold" && setMapModalProduct(product)
+                  }
+                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-gray-700 relative mb-3 ${
+                    product.status === "sold"
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  <div className="absolute top-2 left-2 bg-gray-900/70 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">
+                    <MapPin className="w-4 h-4 text-green-400" />
+                    Preview
+                  </div>
+
+                  <LeafletMapWithDraw
+                    center={[product.lat, product.lng]}
+                    radius={product.radius || 300}
+                    previewOnly={true}
+                    style={{ width: "100%", height: "100%" }}
+                  />
                 </div>
               )}
 
@@ -309,16 +388,7 @@ export default function MyListings({ loadPage }) {
                   >
                     <Trash2 size={16} />
                   </button>
-
-                  {/* Sold / Unsold toggle */}
-                  {product.status === "sold" ? (
-                    <button
-                      onClick={() => toggleSoldStatus(product, false)}
-                      className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
-                    >
-                      Unsold
-                    </button>
-                  ) : (
+                  {product.status !== "sold" && (
                     <button
                       onClick={() => toggleSoldStatus(product, true)}
                       className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
