@@ -17,7 +17,6 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
   const [imagesToDelete, setImagesToDelete] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load product info & images
   useEffect(() => {
     if (!product) return;
 
@@ -146,36 +145,36 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 px-4">
+      <div className="bg-gray-900 text-gray-200 rounded-2xl shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-3 text-gray-400 hover:text-white transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Edit2 className="w-5 h-5 text-blue-600" /> Edit Product
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-green-400">
+          <Edit2 className="w-5 h-5" /> Edit Product
         </h2>
 
         {/* Images Section */}
         <div className="mb-4">
-          <span className="font-medium text-gray-700">Images</span>
+          <span className="font-medium text-gray-300">Images</span>
           {images.length ? (
             <>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {images.map((img, index) => (
                   <div
                     key={img.img_id || img.temp_id || `img-${index}`}
-                    className="relative border rounded-md overflow-hidden"
+                    className="relative border border-gray-700 rounded-md overflow-hidden"
                   >
                     <img src={img.img_path} className="w-full h-24 object-cover" />
                     <input
                       type="checkbox"
                       checked={img.selected || false}
                       onChange={() => toggleSelectImage(img)}
-                      className="absolute top-1 left-1 w-5 h-5 accent-blue-600"
+                      className="absolute top-1 left-1 w-5 h-5 accent-green-400"
                     />
                   </div>
                 ))}
@@ -183,7 +182,7 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
               <button
                 type="button"
                 onClick={deleteSelectedImages}
-                className="mt-2 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="mt-2 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
               >
                 Delete Selected
               </button>
@@ -195,14 +194,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
 
         {/* Add new images */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Add Images</label>
+          <label className="block text-sm font-medium text-gray-300">Add Images</label>
           <input
             type="file"
             name="newImages"
             multiple
             accept="image/*"
             onChange={handleChange}
-            className="w-full mt-1 border rounded-lg p-2"
+            className="w-full mt-1 border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
           />
         </div>
 
@@ -214,14 +213,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
             placeholder="Title"
             value={form.title}
             onChange={handleChange}
-            className="w-full border rounded-lg p-2"
+            className="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
           />
           <textarea
             name="description"
             placeholder="Description"
             value={form.description}
             onChange={handleChange}
-            className="w-full border rounded-lg p-2"
+            className="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
             rows={3}
           />
           <div className="grid grid-cols-2 gap-3">
@@ -231,7 +230,7 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
               placeholder="Price ₱"
               value={form.price}
               onChange={handleChange}
-              className="border rounded-lg p-2"
+              className="border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
             />
             <input
               type="number"
@@ -239,14 +238,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
               placeholder="Original ₱"
               value={form.original_price}
               onChange={handleChange}
-              className="border rounded-lg p-2"
+              className="border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
             />
           </div>
           <select
             name="condition"
             value={form.condition}
             onChange={handleChange}
-            className="w-full border rounded-lg p-2"
+            className="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
           >
             <option>New</option>
             <option>Like New</option>
@@ -258,14 +257,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+              className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-800 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-green-500 text-gray-900 rounded-lg hover:bg-green-600 transition"
             >
               {loading ? "Saving..." : "Save Changes"}
             </button>

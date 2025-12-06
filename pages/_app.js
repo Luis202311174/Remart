@@ -61,6 +61,7 @@ export default function App({ Component, pageProps }) {
         {!hideChat && (
           <>
             <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
+              {/* Chat Button */}
               <button
                 onClick={() => setChatOpen(true)}
                 className="p-4 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition"
@@ -69,6 +70,7 @@ export default function App({ Component, pageProps }) {
                 <FontAwesomeIcon icon={faComments} size="lg" />
               </button>
 
+              {/* AI Assistant Button */}
               <button
                 onClick={() => setChatbotOpen(true)}
                 className="p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition"
@@ -78,12 +80,13 @@ export default function App({ Component, pageProps }) {
               </button>
             </div>
 
-            {/* Chat & Chatbot Modals */}
+            {/* Chat & Chatbot Panels */}
             {chatOpen && (
               <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />
             )}
             {chatbotOpen && (
               <ChatbotLayout
+                isOpen={chatbotOpen}
                 onClose={() => setChatbotOpen(false)}
                 productData={chatbotContext?.product || null}
               />

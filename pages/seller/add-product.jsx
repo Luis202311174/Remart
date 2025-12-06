@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { PlusCircle, X } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import dynamic from "next/dynamic";
+import { supabase } from "@/lib/supabaseClient";
 
 // Dynamic Leaflet imports (SSR disabled)
 const LeafletMapWithDraw = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
@@ -42,8 +42,8 @@ export default function AddProduct() {
   // Auto-hide success message
   useEffect(() => {
     if (!successMsg) return;
-    const t = setTimeout(() => setSuccessMsg(""), 3000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSuccessMsg(""), 3000);
+    return () => clearTimeout(timer);
   }, [successMsg]);
 
   // Get user's geolocation
@@ -89,13 +89,13 @@ export default function AddProduct() {
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "images") {
-      setForm((f) => ({ ...f, images: Array.from(files) }));
+      setForm((prev) => ({ ...prev, images: Array.from(files) }));
     } else {
-      setForm((f) => ({ ...f, [name]: value }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  // Automatically pan/zoom the preview map to fit the circle
+  // Auto-fit preview map to circle
   useEffect(() => {
     if (mapPreviewRef.current && form.lat && form.lng) {
       const radiusInMeters = form.radius || 50;
@@ -181,10 +181,10 @@ export default function AddProduct() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8 sm:p-10">
-        <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-gray-800">
-          <PlusCircle className="w-7 h-7 text-blue-600" />
+    <div className="flex-1 bg-gray-900 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-lg p-8 sm:p-10">
+        <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-green-400">
+          <PlusCircle className="w-7 h-7" />
           Add New Product
         </h2>
 
@@ -197,15 +197,15 @@ export default function AddProduct() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 text-gray-200">
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <label className="block text-sm font-medium mb-2">Category</label>
             <select
               name="cat_id"
               value={form.cat_id}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
             >
               <option value="">Select Category</option>
               {categories.map((c) => (
@@ -218,59 +218,59 @@ export default function AddProduct() {
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+            <label className="block text-sm font-medium mb-2">Title</label>
             <input
               name="title"
               value={form.title}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <label className="block text-sm font-medium mb-2">Description</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
               rows="4"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
             />
           </div>
 
           {/* Prices */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+              <label className="block text-sm font-medium mb-2">Price</label>
               <input
                 type="number"
                 name="price"
                 value={form.price}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Original Price</label>
+              <label className="block text-sm font-medium mb-2">Original Price</label>
               <input
                 type="number"
                 name="original_price"
                 value={form.original_price}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
               />
             </div>
           </div>
 
           {/* Condition */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+            <label className="block text-sm font-medium mb-2">Condition</label>
             <select
               name="condition"
               value={form.condition}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
             >
               <option>New</option>
               <option>Like New</option>
@@ -281,9 +281,9 @@ export default function AddProduct() {
 
           {/* Pickup Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Location</label>
+            <label className="block text-sm font-medium mb-2">Pickup Location</label>
             <div
-              className="w-full h-56 border border-gray-300 rounded-lg overflow-hidden cursor-pointer relative hover:shadow-lg transition"
+              className="w-full h-56 border border-gray-600 rounded-lg overflow-hidden cursor-pointer relative hover:shadow-lg transition"
               onClick={() => setShowMapModal(true)}
             >
               {!showMapModal && (
@@ -299,13 +299,13 @@ export default function AddProduct() {
                     <Circle
                       center={[form.lat, form.lng]}
                       radius={form.radius}
-                      pathOptions={{ color: "#2563eb", fillColor: "#3b82f6", fillOpacity: 0.3 }}
+                      pathOptions={{ color: "#10B981", fillColor: "#34D399", fillOpacity: 0.3 }}
                     />
                   )}
                 </MapContainer>
               )}
               {form.lat && form.lng && !showMapModal && (
-                <div className="absolute top-2 left-2 text-sm text-gray-700 bg-white px-2 py-1 rounded shadow-sm">
+                <div className="absolute top-2 left-2 text-sm text-gray-900 bg-green-400 px-2 py-1 rounded shadow-sm">
                   Lat: {form.lat.toFixed(5)}, Lng: {form.lng.toFixed(5)}
                 </div>
               )}
@@ -315,16 +315,16 @@ export default function AddProduct() {
           {/* Map Modal */}
           {showMapModal && (
             <div
-              className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
+              className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center p-4"
               role="dialog"
               aria-modal="true"
             >
-              <div className="relative w-full max-w-4xl h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
+              <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
                 <button
                   onClick={() => setShowMapModal(false)}
-                  className="absolute top-4 right-4 z-[1000] bg-white shadow-md rounded-full p-2 hover:bg-gray-100 transition border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="absolute top-4 right-4 z-[1000] bg-gray-800 shadow-md rounded-full p-2 hover:bg-gray-700 transition border focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
-                  <X className="w-5 h-5 text-gray-700" />
+                  <X className="w-5 h-5 text-green-400" />
                 </button>
 
                 <LeafletMapWithDraw
@@ -341,14 +341,14 @@ export default function AddProduct() {
 
           {/* Images */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Images</label>
+            <label className="block text-sm font-medium mb-2">Images</label>
             <input
               type="file"
               name="images"
               accept="image/*"
               multiple
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
             />
           </div>
 
@@ -356,7 +356,7 @@ export default function AddProduct() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold shadow hover:bg-blue-700 transition disabled:opacity-50"
+            className="w-full py-3 bg-green-500 text-gray-900 rounded-xl font-semibold shadow hover:bg-green-600 transition disabled:opacity-50"
           >
             {loading ? "Adding..." : "Add Product"}
           </button>

@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -26,16 +27,13 @@ export default function MyListings({ loadPage }) {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [mapModalProduct, setMapModalProduct] = useState(null);
 
-  /* -----------------------------
-     LOAD SELLER + PRODUCTS
-  --------------------------------*/
+  // Load seller + products
   useEffect(() => {
     const loadSellerProducts = async () => {
       setLoading(true);
@@ -93,9 +91,7 @@ export default function MyListings({ loadPage }) {
     loadSellerProducts();
   }, []);
 
-  /* -----------------------------
-       AUTO-HIDE SUCCESS FLASH
-  --------------------------------*/
+  // Auto-hide success messages
   useEffect(() => {
     if (successMsg) {
       const timer = setTimeout(() => setSuccessMsg(""), 3000);
@@ -103,18 +99,15 @@ export default function MyListings({ loadPage }) {
     }
   }, [successMsg]);
 
-  /* -----------------------------
-       DELETE LOGIC
-  --------------------------------*/
+  // Delete product
   const confirmDelete = (product) => {
-     setMapModalProduct(null);
+    setMapModalProduct(null);
     setProductToDelete(product);
     setShowDeleteModal(true);
   };
 
   const handleDelete = async () => {
     if (!productToDelete) return;
-    
     setShowDeleteModal(false);
 
     const { error } = await supabase
@@ -133,39 +126,30 @@ export default function MyListings({ loadPage }) {
     setProductToDelete(null);
   };
 
-const handleEdit = (product) => {
-  setMapModalProduct(null); // 👈 auto-close map preview
-  setSelectedProduct(product);
-  setShowEditModal(true);
-};
+  const handleEdit = (product) => {
+    setMapModalProduct(null);
+    setSelectedProduct(product);
+    setShowEditModal(true);
+  };
 
-  /* -----------------------------
-       LOADING SCREEN
-  --------------------------------*/
   if (loading)
     return (
-      <div className="flex justify-center items-center h-[60vh] text-gray-500 text-lg">
+      <div className="flex justify-center items-center h-[60vh] text-gray-400 text-lg bg-gray-900">
         Loading products...
       </div>
     );
 
-  /* -----------------------------
-       ERROR SCREEN
-  --------------------------------*/
   if (error)
     return (
-      <div className="max-w-xl mx-auto p-6 mt-12 text-center bg-red-100 text-red-700 border border-red-300 rounded-xl shadow">
+      <div className="max-w-xl mx-auto p-6 mt-12 text-center bg-red-900/30 text-red-400 border border-red-700 rounded-xl shadow">
         {error}
       </div>
     );
 
-  /* ===============================================================
-      MODERN RESPONSIVE UI STARTS HERE
-     ===============================================================*/
   return (
-    <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-10">
+    <div className="max-w-6xl mx-auto bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-6 md:p-10 text-gray-200">
 
-      {/* Floating success flash */}
+      {/* Success flash */}
       {successMsg && (
         <div className="fixed top-6 right-6 z-50 animate-fade-in-down">
           <div className="backdrop-blur-sm bg-green-600/90 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3">
@@ -175,29 +159,22 @@ const handleEdit = (product) => {
         </div>
       )}
 
-      {/* -------------------------
-           MODALS
-      --------------------------*/}
+      {/* Delete Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center backdrop-blur-sm px-4">
-          <div className="bg-white w-full max-w-md rounded-xl shadow-xl p-6 animate-scale-in">
-            <div className="flex items-center gap-2 mb-4 text-red-600">
+        <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center backdrop-blur-sm px-4">
+          <div className="bg-gray-800 w-full max-w-md rounded-xl shadow-xl p-6 animate-scale-in text-gray-200">
+            <div className="flex items-center gap-2 mb-4 text-red-500">
               <AlertTriangle className="w-5 h-5" />
               <h3 className="text-xl font-semibold">Delete Product</h3>
             </div>
-
-            <p className="text-gray-700 mb-6 leading-relaxed">
+            <p className="mb-6 leading-relaxed">
               Are you sure you want to delete{" "}
-              <span className="font-semibold">
-                {productToDelete?.title}
-              </span>
-              ?
+              <span className="font-semibold">{productToDelete?.title}</span>?
             </p>
-
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition"
               >
                 Cancel
               </button>
@@ -212,25 +189,25 @@ const handleEdit = (product) => {
         </div>
       )}
 
-      {/* Edit modal */}
+      {/* Edit Modal */}
       {showEditModal && selectedProduct && (
         <EditProductModal
           product={selectedProduct}
+          darkTheme={true} // Pass dark theme prop
           onClose={() => setShowEditModal(false)}
           onUpdated={() => window.location.reload()}
         />
       )}
 
-      {/* Map modal */}
+      {/* Map Modal */}
       {mapModalProduct && (
         <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="relative w-full max-w-4xl h-[85vh] bg-white rounded-lg shadow-xl overflow-hidden animate-slide-up">
-
+          <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-lg shadow-xl overflow-hidden animate-slide-up">
             <button
               onClick={() => setMapModalProduct(null)}
-              className="absolute top-4 right-4 bg-white/90 shadow-lg border rounded-full p-2 z-[300] hover:bg-gray-100 transition"
+              className="absolute top-4 right-4 bg-gray-800/90 shadow-lg border rounded-full p-2 z-[300] hover:bg-gray-700 transition"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-green-400" />
             </button>
 
             <LeafletMapWithDraw
@@ -267,7 +244,7 @@ const handleEdit = (product) => {
                     setMapModalProduct(null);
                   }
                 }}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition"
+                className="px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg shadow-lg hover:bg-green-600 transition"
               >
                 Save Location
               </button>
@@ -276,24 +253,20 @@ const handleEdit = (product) => {
         </div>
       )}
 
-      {/* -------------------------
-           HEADER
-      --------------------------*/}
-      <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-gray-800">
+      {/* Header */}
+      <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-green-400">
         <List className="w-7 h-7" />
         My Product Listings
       </h2>
 
-      {/* -------------------------
-           NO PRODUCTS
-      --------------------------*/}
+      {/* No Products */}
       {products.length === 0 ? (
-        <div className="border border-dashed border-gray-300 rounded-xl py-12 text-center bg-gray-50">
-          <PackageX className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-          <p className="text-gray-600">You have no products yet.</p>
+        <div className="border border-dashed border-gray-600 rounded-xl py-12 text-center bg-gray-800">
+          <PackageX className="w-12 h-12 mx-auto text-gray-500 mb-3" />
+          <p className="text-gray-400">You have no products yet.</p>
           <button
             onClick={() => loadPage("add-product")}
-            className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="mt-4 px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg hover:bg-green-600 transition"
           >
             Add Product
           </button>
@@ -303,44 +276,43 @@ const handleEdit = (product) => {
           {products.map((product) => (
             <div
               key={product.product_id}
-              className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition p-4 flex flex-col relative"
+              className="bg-gray-800 border border-gray-700 rounded-xl shadow-sm hover:shadow-md transition p-4 flex flex-col relative"
             >
-              {/* SOLD BADGE */}
               {product.status === "sold" && (
                 <div className="absolute top-3 right-3 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded-full shadow">
                   SOLD
                 </div>
               )}
 
-              {/* IMAGE */}
+              {/* Image */}
               {product.product_images?.length ? (
                 <img
                   src={product.product_images[0].img_path}
                   alt={product.title}
                   className={`w-full h-48 object-cover rounded-lg mb-3 ${
-                    product.status === "sold" ? "opacity-60" : ""
+                    product.status === "sold" ? "opacity-50" : ""
                   }`}
                 />
               ) : (
-                <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 mb-3">
+                <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 mb-3">
                   No Image
                 </div>
               )}
 
-              {/* MAP PREVIEW */}
+              {/* Map Preview */}
               {product.lat && product.lng && (
                 <div
                   onClick={() =>
                     product.status !== "sold" && setMapModalProduct(product)
                   }
-                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-gray-200 relative mb-3 ${
+                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-gray-700 relative mb-3 ${
                     product.status === "sold"
                       ? "opacity-50 cursor-not-allowed"
                       : "cursor-pointer"
                   }`}
                 >
-                  <div className="absolute top-2 left-2 bg-white/80 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">
-                    <MapPin className="w-4 h-4 text-gray-700" />
+                  <div className="absolute top-2 left-2 bg-gray-900/70 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">
+                    <MapPin className="w-4 h-4 text-green-400" />
                     Preview
                   </div>
 
@@ -353,50 +325,45 @@ const handleEdit = (product) => {
                 </div>
               )}
 
-              {/* TITLE + CATEGORY */}
-              <h3 className="font-semibold text-lg text-gray-800 line-clamp-1">
+              {/* Title + Category */}
+              <h3 className="font-semibold text-lg text-green-400 line-clamp-1">
                 {product.title}
               </h3>
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="text-sm text-gray-400 mb-2">
                 {product.categories?.cat_name || "Uncategorized"}
               </p>
 
-              {/* DESCRIPTION */}
-              <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+              {/* Description */}
+              <p className="text-gray-300 text-sm line-clamp-2 mb-4">
                 {product.description}
               </p>
 
-              {/* PRICE + ACTIONS */}
+              {/* Price + Actions */}
               <div className="flex items-center justify-between mt-auto mb-3">
                 <div>
-                  <span className="text-blue-700 font-bold text-lg">
+                  <span className="text-green-500 font-bold text-lg">
                     ₱{Number(product.price).toFixed(2)}
                   </span>
                   {product.original_price && (
-                    <span className="ml-2 text-gray-400 line-through text-sm">
+                    <span className="ml-2 text-gray-500 line-through text-sm">
                       ₱{Number(product.original_price).toFixed(2)}
                     </span>
                   )}
                 </div>
 
                 <div className="flex gap-2">
-                  {/* Edit */}
                   <button
                     onClick={() => handleEdit(product)}
-                    className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+                    className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
                   >
                     <Edit size={16} />
                   </button>
-
-                  {/* Delete */}
                   <button
                     onClick={() => confirmDelete(product)}
-                    className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+                    className="p-2 bg-gray-700 text-red-500 rounded-lg hover:bg-gray-600 transition"
                   >
                     <Trash2 size={16} />
                   </button>
-
-                  {/* Sold */}
                   {product.status !== "sold" && (
                     <button
                       onClick={async () => {
@@ -418,7 +385,7 @@ const handleEdit = (product) => {
                           setSuccessMsg("✅ Product marked as sold!");
                         }
                       }}
-                      className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
+                      className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
                     >
                       Sold
                     </button>
@@ -426,13 +393,11 @@ const handleEdit = (product) => {
                 </div>
               </div>
 
-              {/* FOOTER METADATA */}
+              {/* Footer Metadata */}
               <div className="text-xs text-gray-500">
                 Condition: {product.condition || "N/A"} <br />
                 {product.lat && product.lng
-                  ? `Location: ${product.lat.toFixed(5)}, ${product.lng.toFixed(
-                      5
-                    )}`
+                  ? `Location: ${product.lat.toFixed(5)}, ${product.lng.toFixed(5)}`
                   : "Location: N/A"}
                 <br />
                 <span className="block mt-1 text-gray-400">

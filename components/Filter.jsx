@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { SlidersHorizontal } from "lucide-react";
 
-export default function Filter({ itemCount = 0 }) {
+export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = false }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,7 +45,7 @@ export default function Filter({ itemCount = 0 }) {
     setSort(searchParams.get("sort") || "newest");
   }, [searchParams]);
 
-  /* Apply */
+  /* Apply filters */
   const handleSubmit = (e) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
@@ -60,7 +60,7 @@ export default function Filter({ itemCount = 0 }) {
     router.push(`?${params.toString()}`);
   };
 
-  /* Clear */
+  /* Clear filters */
   const handleClear = () => {
     const q = searchParams.get("q") || "";
     setIsOpen(false);
@@ -72,14 +72,16 @@ export default function Filter({ itemCount = 0 }) {
 
       {/* Items Count + Filter Icon */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-gray-500 text-sm md:text-base">{itemCount} items found</p>
+        <p className={`${darkTheme ? "text-gray-400" : "text-gray-700"} text-sm md:text-base`}>
+          {itemCount} items found
+        </p>
 
-        {/* Filter Icon Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition flex items-center"
+          className={`p-2 rounded-full border transition flex items-center 
+            ${darkTheme ? "border-gray-600 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-100"}`}
         >
-          <SlidersHorizontal className="h-5 w-5 text-gray-700" />
+          <SlidersHorizontal className={`h-5 w-5 ${darkTheme ? "text-green-500" : "text-gray-700"}`} />
         </button>
       </div>
 
@@ -87,14 +89,16 @@ export default function Filter({ itemCount = 0 }) {
       {isOpen && (
         <form
           onSubmit={handleSubmit}
-          className="bg-white border border-gray-200 shadow-md rounded-xl p-4 mt-2 flex flex-wrap gap-3 transition-all"
+          className={`mt-2 flex flex-wrap gap-3 p-4 rounded-xl border transition-all 
+            ${darkTheme ? "bg-gray-900 border-gray-700 shadow-lg" : "bg-white border-gray-200 shadow-md"}`}
         >
           {/* Category */}
           <div className="flex-1 min-w-[120px]">
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black"
+              className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500 
+                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
             >
               <option value="all">All Categories</option>
               {categories.map(cat => (
@@ -110,7 +114,8 @@ export default function Filter({ itemCount = 0 }) {
             <select
               value={condition}
               onChange={(e) => setCondition(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black"
+              className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
             >
               <option value="all">All Conditions</option>
               <option value="New">New</option>
@@ -127,14 +132,16 @@ export default function Filter({ itemCount = 0 }) {
               placeholder="Min ₱"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
-              className="w-24 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black"
+              className={`w-24 p-2 rounded border focus:ring-1 focus:ring-green-500
+                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
             />
             <input
               type="number"
               placeholder="Max ₱"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
-              className="w-24 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black"
+              className={`w-24 p-2 rounded border focus:ring-1 focus:ring-green-500
+                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
             />
           </div>
 
@@ -143,7 +150,8 @@ export default function Filter({ itemCount = 0 }) {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-black"
+              className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
             >
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
@@ -156,7 +164,7 @@ export default function Filter({ itemCount = 0 }) {
           <div className="flex gap-2 mt-2 w-full">
             <button
               type="submit"
-              className="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800 transition"
+              className="flex-1 bg-green-500 text-black py-2 rounded hover:bg-green-600 transition"
             >
               Apply Filters
             </button>
@@ -164,7 +172,7 @@ export default function Filter({ itemCount = 0 }) {
             <button
               type="button"
               onClick={handleClear}
-              className="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300 transition"
+              className={`${darkTheme ? "bg-gray-700 text-white hover:bg-gray-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"} flex-1 py-2 rounded transition`}
             >
               Clear
             </button>

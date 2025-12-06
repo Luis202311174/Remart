@@ -31,3 +31,8 @@ body {
 .animate-fade-in-down {
   animation: fade-in-down 0.3s ease-out;
 }
+
+/* Fix Leaflet overlapping UI */
+.leaflet-container {
+  z-index: 0 !important;
+}

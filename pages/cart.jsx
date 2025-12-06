@@ -14,7 +14,6 @@ export default function CartPage() {
 
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState(null);
 
   const fetchCart = async () => {
     if (!user) return router.push("/login");
@@ -38,12 +37,18 @@ export default function CartPage() {
         })
       );
 
-      const filtered = detailedCart.filter((i) => i.product);
-      setCartItems(filtered);
-
-      if (filtered.length > 0) setSelectedItem(filtered[0]);
+      setCartItems(detailedCart.filter((i) => i.product));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemove = async (cartId) => {
+    try {
+      await supabase.from("cart").delete().eq("cart_id", cartId).eq("buyer_id", user.id);
+      fetchCart();
+    } catch (err) {
+      console.error("❌ Remove error:", err.message);
     }
   };
 
@@ -51,124 +56,83 @@ export default function CartPage() {
     if (user) fetchCart();
   }, [user]);
 
-  const handleRemove = async (cartId) => {
-    try {
-      await supabase.from("cart").delete().eq("cart_id", cartId).eq("buyer_id", user.id);
-      fetchCart();
-      setSelectedItem(null);
-    } catch (err) {
-      console.error("❌ Remove error:", err.message);
-    }
-  };
-
   return (
     <>
-      <Header user={user} />
+      <Header />
 
-      {/* Full screen layout */}
-      <div className="flex h-screen overflow-hidden bg-gray-50">
-        {/* LEFT PANEL: Cart List */}
-        <div className="w-[38%] border-r border-gray-200 bg-white/50 backdrop-blur-md shadow-inner overflow-y-auto p-6 space-y-4 flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">🛍️ Your Interested Items</h1>
+      <div className="bg-gray-900 min-h-screen py-12 px-6">
+        <h1 className="text-4xl font-bold text-white mb-10 text-center">🛍️ Your Cart</h1>
 
-          {loading ? (
-            <div className="text-gray-500 p-4">Loading items...</div>
-          ) : cartItems.length === 0 ? (
-            <div className="text-gray-500 p-4 text-center">
-              Your cart is empty. Browse products and add items you like!
-            </div>
-          ) : (
-            cartItems.map(({ cart_id, quantity, product }) => {
-              const isSold = product.status === "sold";
-              const isSelected = selectedItem?.cart_id === cart_id;
+        {loading ? (
+          <div className="text-gray-400 text-center">Loading items...</div>
+        ) : cartItems.length === 0 ? (
+          <div className="text-gray-400 text-center text-lg">Your cart is empty. Add some products!</div>
+        ) : (
+          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {cartItems.map(({ cart_id, quantity, product }) => (
+              <div
+                key={cart_id}
+                className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col shadow-sm hover:shadow-md transition-all"
+              >
+                {/* Top Row — Quantity */}
+                <div className="flex justify-end mb-2">
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                    x{quantity}
+                  </span>
+                </div>
 
-              return (
-                <div
-                  key={cart_id}
-                  onClick={() => setSelectedItem({ cart_id, quantity, product })}
-                  className={`cursor-pointer flex gap-4 p-4 rounded-xl border shadow-sm transition-all hover:shadow-md ${
-                    isSelected ? "border-emerald-400 bg-emerald-50/70" : "border-gray-200 bg-white"
-                  }`}
-                >
+                {/* Product Image */}
+                <div className="rounded-xl overflow-hidden bg-gray-800 h-44 mb-4">
                   <img
                     src={product.image || "/uploads/default.png"}
-                    className={`w-24 h-24 rounded-xl object-cover border ${isSold ? "opacity-60" : ""}`}
+                    alt={product.title}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform"
                   />
-                  <div className="flex flex-col justify-between flex-1">
-                    <p className="font-semibold text-gray-900 truncate">{product.title}</p>
-                    <p className="text-sm text-gray-500">₱{(product.price * quantity).toFixed(2)}</p>
-                    {isSold && <span className="text-xs text-red-600 font-semibold">SOLD</span>}
-                  </div>
                 </div>
-              );
-            })
-          )}
-        </div>
 
-        {/* RIGHT PANEL: Details */}
-        <div className="flex-1 flex flex-col bg-white overflow-y-auto p-10">
-          {!selectedItem ? (
-            <div className="text-gray-500 text-lg flex-1 flex items-center justify-center">
-              Select an item to view details
-            </div>
-          ) : (
-            <div className="max-w-2xl mx-auto flex-1 flex flex-col">
-              {/* Product Image */}
-              <div className="w-full h-80 rounded-2xl overflow-hidden shadow-md border mb-6 flex-shrink-0">
-                <img
-                  src={selectedItem.product.image || "/uploads/default.png"}
-                  className="w-full h-full object-cover"
-                />
+                {/* Product Details */}
+                <h3 className="text-lg font-semibold text-white line-clamp-1 mb-1">{product.title}</h3>
+                <p className="text-green-400 font-bold mb-2">₱{(product.price * quantity).toFixed(2)}</p>
+                <p className="text-gray-400 text-sm">Seller: {product.seller_label}</p>
+                <p className="text-gray-400 text-sm">Condition: {product.condition}</p>
+                <p className="text-gray-400 text-sm mb-3">Location: {product.location}</p>
+
+                {/* Action Buttons */}
+                <div className="mt-auto flex flex-col gap-2">
+                  <button
+                    onClick={() => router.push(`/view-product/${product.id}`)}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-green-400 text-black rounded-xl shadow hover:bg-green-500 transition font-medium"
+                  >
+                    <Eye size={16} /> View Item
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent("openChat", {
+                          detail: {
+                            seller_auth_id: product.seller?.auth_id || product.seller_auth_id || product.seller_id,
+                            product_id: product.id,
+                          },
+                        })
+                      )
+                    }
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl shadow hover:bg-gray-700 transition font-medium"
+                  >
+                    <MessageSquare size={16} /> Contact Seller
+                  </button>
+
+                  <button
+                    onClick={() => handleRemove(cart_id)}
+                    className="flex items-center justify-center gap-2 text-red-500 font-semibold hover:text-red-600 transition mt-1"
+                  >
+                    <Trash2 size={16} /> Remove
+                  </button>
+                </div>
               </div>
-
-              {/* Product Details */}
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">{selectedItem.product.title}</h2>
-              <p className="text-gray-500 mb-1">Seller: {selectedItem.product.seller_label}</p>
-              <p className="text-gray-500 mb-1">Condition: {selectedItem.product.condition}</p>
-              <p className="text-gray-500 mb-1">Location: {selectedItem.product.location}</p>
-
-              <p className="text-3xl text-emerald-600 font-extrabold mt-4">
-                ₱{(selectedItem.product.price * selectedItem.quantity).toFixed(2)}
-              </p>
-
-              {/* Action Buttons */}
-              <div className="mt-8 flex flex-col gap-3">
-                <button
-                  onClick={() => router.push(`/view-product/${selectedItem.product.id}`)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
-                >
-                  <Eye size={20} /> View Item
-                </button>
-
-                <button
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent("openChat", {
-                        detail: {
-                          seller_auth_id:
-                            selectedItem.product.seller?.auth_id ||
-                            selectedItem.product.seller_auth_id ||
-                            selectedItem.product.seller_id,
-                          product_id: selectedItem.product.id,
-                        },
-                      })
-                    )
-                  }
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition"
-                >
-                  <MessageSquare size={20} /> Contact Seller
-                </button>
-
-                <button
-                  onClick={() => handleRemove(selectedItem.cart_id)}
-                  className="flex items-center justify-center gap-2 text-red-600 font-semibold hover:text-red-700 transition"
-                >
-                  <Trash2 size={20} /> Remove Item
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

@@ -94,7 +94,6 @@ export default function SellerSettings() {
     setDeleting(true);
 
     try {
-      // Delete seller’s products and related data
       const { data: productIds } = await supabase
         .from("products")
         .select("product_id")
@@ -106,15 +105,12 @@ export default function SellerSettings() {
         await supabase.from("products").delete().eq("seller_id", seller.id);
       }
 
-      // Delete seller account record
       await supabase.from("seller").delete().eq("id", seller.id);
-
-      // Optional: sign out user
       await supabase.auth.signOut();
 
       showFlash("success", "✅ Your seller account has been deleted.");
       setTimeout(() => {
-        window.location.href = "/"; // redirect after deletion
+        window.location.href = "/";
       }, 2000);
     } catch (err) {
       console.error(err);
@@ -125,65 +121,59 @@ export default function SellerSettings() {
     }
   };
 
-  // ✅ UI states
   if (loading)
     return (
-      <div className="flex justify-center items-center h-64 text-gray-500">
-        Loading settings...
+      <div className="flex justify-center items-center h-64 text-gray-400 bg-gray-900">
+        Loading seller settings...
       </div>
     );
 
   if (error)
     return (
-      <div className="max-w-3xl mx-auto p-6 text-center text-red-600 bg-red-50 border border-red-200 rounded-lg mt-10">
+      <div className="max-w-3xl mx-auto p-6 text-center text-red-600 bg-red-50 border border-red-200 rounded-xl mt-10">
         {error}
       </div>
     );
 
   return (
-    <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl shadow p-6 relative">
+    <div className="max-w-5xl mx-auto bg-gray-900 text-white rounded-xl shadow p-6 relative">
+
       {/* Flash Message */}
       {flash && (
         <div
-          className={`fixed top-20 right-6 px-4 py-2 rounded-lg shadow-md text-white flex items-center gap-2 z-50 transition-all duration-300 ${
+          className={`fixed top-20 right-6 px-4 py-2 rounded-lg shadow-md flex items-center gap-2 z-50 transition-all duration-300 ${
             flash.type === "success" ? "bg-green-600" : "bg-red-600"
           }`}
         >
-          {flash.type === "success" ? (
-            <CheckCircle size={18} />
-          ) : (
-            <XCircle size={18} />
-          )}
+          {flash.type === "success" ? <CheckCircle size={18} /> : <XCircle size={18} />}
           {flash.msg}
         </div>
       )}
 
       {/* Header */}
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <Settings className="w-6 h-6 text-gray-700" />
+        <Settings className="w-6 h-6 text-green-500" />
         Seller Account Settings
       </h2>
 
       {/* Account Info */}
-      <div className="mb-8 bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-          Account Information
-        </h3>
-        <p className="text-sm text-gray-600 mb-1">
+      <div className="mb-8 bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-green-500 mb-2">Account Information</h3>
+        <p className="text-sm text-gray-300 mb-1">
           <span className="font-medium">Seller ID:</span> {seller?.id}
         </p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-400">
           This ID is used internally to associate your products and orders.
         </p>
       </div>
 
       {/* Danger Zone */}
-      <div className="border border-red-200 bg-red-50 rounded-xl p-6">
+      <div className="border border-red-700 bg-red-900/20 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle className="w-5 h-5 text-red-600" />
-          <h3 className="text-lg font-semibold text-red-700">Danger Zone</h3>
+          <AlertTriangle className="w-5 h-5 text-red-500" />
+          <h3 className="text-lg font-semibold text-red-500">Danger Zone</h3>
         </div>
-        <p className="text-sm text-red-600 mb-4">
+        <p className="text-sm text-red-400 mb-4">
           Actions here are permanent and cannot be undone.
         </p>
 
@@ -211,14 +201,14 @@ export default function SellerSettings() {
       {/* Confirmation Modal */}
       {modal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50">
-  <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex items-center gap-2 text-red-600 mb-3">
+          <div className="bg-gray-900/95 backdrop-blur-md rounded-xl p-6 w-full max-w-md shadow-xl text-white">
+            <div className="flex items-center gap-2 text-red-500 mb-3">
               <AlertTriangle className="w-6 h-6" />
               <h3 className="text-lg font-semibold">
                 Confirm {modal === "products" ? "Product Deletion" : "Account Deletion"}
               </h3>
             </div>
-            <p className="text-gray-700 mb-6">
+            <p className="text-gray-300 mb-6">
               {modal === "products"
                 ? "This will permanently delete all your listed products and cannot be undone."
                 : "This will permanently delete your seller account, all associated products, and related data. Are you sure you want to continue?"}
@@ -226,16 +216,12 @@ export default function SellerSettings() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setModal(null)}
-                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                className="px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-800 transition"
               >
                 Cancel
               </button>
               <button
-                onClick={
-                  modal === "products"
-                    ? handleDeleteAllProducts
-                    : handleDeleteAccount
-                }
+                onClick={modal === "products" ? handleDeleteAllProducts : handleDeleteAccount}
                 disabled={deleting}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
               >

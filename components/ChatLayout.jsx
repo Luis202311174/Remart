@@ -18,6 +18,7 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
+  // Fetch chats
   useEffect(() => {
     const fetchChats = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -33,7 +34,6 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
       if (error) return console.error(error);
 
       const userIds = [...new Set(chatsData.flatMap(c => [c.buyer_auth_id, c.seller_auth_id]))];
-
       let profiles = [];
       if (userIds.length) {
         const { data: profileData } = await supabase
@@ -71,37 +71,37 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
   }, [chatTarget]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end justify-end p-2 sm:p-6 bg-black/30">
-      <div className="relative w-full max-w-[800px] h-[90vh] sm:h-[600px] flex flex-col md:flex-row bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex items-end justify-end p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
+      <div className="relative w-full max-w-[700px] h-[75vh] sm:h-[500px] flex flex-col md:flex-row bg-black text-white rounded-xl shadow-2xl overflow-hidden border border-green-600">
 
-        {/* Mobile Sidebar Toggle */}
-        <button
-          className="absolute top-4 left-4 md:hidden z-50 p-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          <List size={24} />
-        </button>
-
-        {/* Close */}
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-red-600 text-white shadow-lg hover:bg-red-700"
+          className="absolute top-3 right-3 p-2 rounded-full bg-green-600 hover:bg-green-700 shadow-lg z-50 text-white"
         >
           ✕
         </button>
 
+        {/* Mobile Sidebar Toggle */}
+        <button
+          className="absolute top-3 left-3 md:hidden z-50 p-2 rounded-full bg-green-600 hover:bg-green-700 shadow-lg focus:outline-none"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          <List size={20} />
+        </button>
+
         {/* Sidebar */}
         <div
-          className={`bg-gray-50 border-r md:flex flex-col w-full md:w-1/3 transition-transform duration-300 ${
+          className={`bg-gray-900 border-r border-green-600 md:flex flex-col w-full md:w-1/3 transition-transform duration-300 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
-          <div className="p-4 bg-blue-600 text-white font-semibold text-lg flex-shrink-0 rounded-tr-2xl">
+          <div className="p-3 bg-green-600 text-white font-semibold text-md flex-shrink-0 rounded-tr-lg">
             My Chats
           </div>
           <div className="flex-1 overflow-y-auto">
             {chats.length === 0 ? (
-              <p className="text-gray-400 text-center mt-6 px-4 text-sm">
+              <p className="text-gray-400 text-center mt-4 px-3 text-sm">
                 No conversations yet.
               </p>
             ) : (
@@ -113,17 +113,17 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
                 return (
                   <div
                     key={chat.chat_id || `${chat.buyer_auth_id}-${chat.seller_auth_id}-${chat.product_id}`}
-                    className={`p-3 border-b cursor-pointer flex items-center space-x-3 hover:bg-blue-50 transition-colors rounded-lg ${
-                      selectedChat?.chat_id === chat.chat_id ? "bg-blue-100" : ""
+                    className={`p-2 border-b cursor-pointer flex items-center space-x-2 hover:bg-green-800 transition-colors rounded-lg ${
+                      selectedChat?.chat_id === chat.chat_id ? "bg-green-700" : ""
                     }`}
                     onClick={() => setSelectedChat(chat)}
                   >
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 overflow-hidden">
                       {otherUser?.pfp ? (
                         <img src={otherUser.pfp} alt={name} className="w-full h-full object-cover" />
                       ) : name[0] || "U"}
                     </div>
-                    <p className="font-medium text-gray-800 truncate">{name}</p>
+                    <p className="font-medium text-white truncate">{name}</p>
                   </div>
                 );
               })
@@ -132,7 +132,7 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
         </div>
 
         {/* Chat Window */}
-        <div className="flex-1 bg-white relative">
+        <div className="flex-1 bg-gray-900 relative">
           {selectedChat ? (
             <ChatWindow
               key={`${selectedChat.chat_id || "new"}-${selectedChat.buyer_auth_id}-${selectedChat.seller_auth_id}-${selectedChat.product_id}`}
@@ -140,7 +140,6 @@ export default function ChatLayout({ onClose, chatTarget = null }) {
               buyerAuthId={selectedChat.buyer_auth_id}
               sellerAuthId={selectedChat.seller_auth_id}
               productId={selectedChat.product_id}
-              onClose={onClose}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-center p-4">

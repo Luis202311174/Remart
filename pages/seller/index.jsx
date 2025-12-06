@@ -8,13 +8,13 @@ import { List, PlusCircle, Settings, ChevronLeft, ChevronRight } from "lucide-re
 
 // Lazy-loaded sub-pages
 const MyListings = dynamic(() => import("./my-listings"), {
-  loading: () => <p className="text-gray-500">Loading listings...</p>,
+  loading: () => <p className="text-gray-400">Loading listings...</p>,
 });
 const AddProduct = dynamic(() => import("./add-product"), {
-  loading: () => <p className="text-gray-500">Loading add product form...</p>,
+  loading: () => <p className="text-gray-400">Loading add product form...</p>,
 });
 const SellerSettingsPage = dynamic(() => import("./settings"), {
-  loading: () => <p className="text-gray-500">Loading settings form...</p>,
+  loading: () => <p className="text-gray-400">Loading settings form...</p>,
 });
 
 export default function SellerDashboard() {
@@ -63,68 +63,67 @@ export default function SellerDashboard() {
       case "settings":
         setContent(<SellerSettingsPage />);
         break;
+      default:
+        setContent(<MyListings />);
     }
   };
 
   if (!user)
     return (
-      <div className="flex justify-center items-center h-screen bg-white text-gray-700">
+      <div className="flex justify-center items-center h-screen bg-gray-900 text-gray-400">
         <p>Checking authentication...</p>
       </div>
     );
 
   return (
-    <>
-      <Header hideSearch />
+    <div className="flex h-screen overflow-hidden bg-gray-900 text-gray-200 font-sans relative">
+      {/* Mobile Sidebar Toggle */}
+      <button
+        className="md:hidden fixed top-24 left-2 z-50 p-2 bg-gray-800 border border-gray-700 rounded-full shadow hover:bg-gray-700 transition"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+      </button>
 
-      <div className="flex h-screen overflow-hidden bg-white text-gray-900 font-sans relative">
-        {/* Mobile Sidebar Toggle */}
-        <button
-          className="md:hidden fixed top-24 left-2 z-50 p-2 bg-gray-100 border border-gray-300 rounded-full shadow hover:bg-gray-200 transition"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-        </button>
+      {/* Sidebar */}
+      <aside
+        className={`
+          bg-gray-900 border-r border-gray-800 p-5 w-64 flex-shrink-0
+          fixed top-16 bottom-0 left-0 z-40
+          transform transition-transform duration-300 ease-in-out
+          md:translate-x-0
+          ${sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"}
+        `}
+      >
+        <h3 className="text-xl font-semibold mb-6 text-green-400">Seller Menu</h3>
 
-        {/* Sidebar */}
-        <aside
-          className={`
-            bg-gray-50 border-r border-gray-200 p-5 w-64 flex-shrink-0
-            fixed top-16 bottom-0 left-0 z-40
-            transform transition-transform duration-300 ease-in-out
-            md:translate-x-0
-            ${sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"}
-          `}
-        >
-          <h3 className="text-xl font-semibold mb-6">Seller Menu</h3>
+        <nav className="flex flex-col gap-3">
+          {menuItems.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={(e) => {
+                e.preventDefault();
+                loadPage(key);
+                if (window.innerWidth < 768) setSidebarOpen(false);
+              }}
+              className={`
+                px-3 py-2 flex items-center gap-3 text-left rounded-lg transition
+                ${activePage === key
+                  ? "bg-green-500 text-gray-900 font-semibold"
+                  : "hover:bg-green-700 hover:text-white"}
+              `}
+            >
+              <Icon size={20} />
+              <span className="text-sm md:text-base">{label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-          <nav className="flex flex-col gap-3">
-            {menuItems.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={(e) => {
-                  e.preventDefault();
-                  loadPage(key);
-                  if (window.innerWidth < 768) setSidebarOpen(false);
-                }}
-                className={`px-3 py-2 flex items-center gap-3 text-left rounded transition ${
-                  activePage === key
-                    ? "bg-gray-200 font-semibold"
-                    : "hover:bg-gray-100"
-                }`}
-              >
-                <Icon size={20} />
-                <span className="text-sm md:text-base">{label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden h-screen p-6 ml-0 md:ml-64 transition-all duration-300">
-          {content}
-        </main>
-      </div>
-    </>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden h-screen p-6 ml-0 md:ml-64 transition-all duration-300">
+        {content}
+      </main>
+    </div>
   );
 }
