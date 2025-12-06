@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import Header from "@/components/Header";
-import { MessageSquare, Eye, Trash2 } from "lucide-react";
+import { MessageSquare, Eye, Trash2, ShoppingCart } from "lucide-react";
 import { fetchProductById } from "@/lib/productFetcher";
 
 export default function CartPage() {
@@ -61,22 +61,36 @@ export default function CartPage() {
       <Header />
 
       <div className="bg-gray-900 min-h-screen py-12 px-6">
-        <h1 className="text-4xl font-bold text-white mb-10 text-center">🛍️ Your Cart</h1>
+        <h1 className="text-4xl font-bold text-white mb-10 text-center flex items-center justify-center gap-2">
+          <ShoppingCart size={32} /> Your Cart
+        </h1>
 
         {loading ? (
           <div className="text-gray-400 text-center">Loading items...</div>
         ) : cartItems.length === 0 ? (
-          <div className="text-gray-400 text-center text-lg">Your cart is empty. Add some products!</div>
+          <div className="text-gray-400 text-center text-lg flex flex-col items-center gap-3 mt-16">
+            <ShoppingCart size={48} className="text-gray-500" />
+            <span>Your cart is empty. Add some products!</span>
+          </div>
         ) : (
           <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {cartItems.map(({ cart_id, quantity, product }) => (
               <div
                 key={cart_id}
-                className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col shadow-sm hover:shadow-md transition-all"
+                className="relative bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col shadow-sm hover:shadow-md transition-all"
               >
+                {/* Remove Button — floating outside top-right */}
+                <button
+                  onClick={() => handleRemove(cart_id)}
+                  className="absolute -top-3 -right-3 text-red-500 hover:text-red-600 transition p-2 rounded-full bg-gray-800 shadow-lg"
+                  title="Remove"
+                >
+                  <Trash2 size={16} />
+                </button>
+
                 {/* Top Row — Quantity */}
                 <div className="flex justify-end mb-2">
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-semibold">
                     x{quantity}
                   </span>
                 </div>
@@ -92,18 +106,20 @@ export default function CartPage() {
 
                 {/* Product Details */}
                 <h3 className="text-lg font-semibold text-white line-clamp-1 mb-1">{product.title}</h3>
-                <p className="text-green-400 font-bold mb-2">₱{(product.price * quantity).toFixed(2)}</p>
-                <p className="text-gray-400 text-sm">Seller: {product.seller_label}</p>
-                <p className="text-gray-400 text-sm">Condition: {product.condition}</p>
-                <p className="text-gray-400 text-sm mb-3">Location: {product.location}</p>
+                <p className="text-green-400 font-bold mb-1 text-sm">
+                  ₱{(product.price * quantity).toFixed(2)}
+                </p>
+                <p className="text-gray-400 text-xs sm:text-sm">Seller: {product.seller_label}</p>
+                <p className="text-gray-400 text-xs sm:text-sm">Condition: {product.condition}</p>
+                <p className="text-gray-400 text-xs sm:text-sm mb-3">Location: {product.location}</p>
 
-                {/* Action Buttons */}
-                <div className="mt-auto flex flex-col gap-2">
+                {/* Action Buttons — side by side */}
+                <div className="mt-auto flex gap-2">
                   <button
                     onClick={() => router.push(`/view-product/${product.id}`)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-green-400 text-black rounded-xl shadow hover:bg-green-500 transition font-medium"
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-green-400 text-black rounded-lg shadow hover:bg-green-500 transition font-medium text-sm"
                   >
-                    <Eye size={16} /> View Item
+                    <Eye size={14} /> View Item
                   </button>
 
                   <button
@@ -117,16 +133,9 @@ export default function CartPage() {
                         })
                       )
                     }
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl shadow hover:bg-gray-700 transition font-medium"
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-800 text-white rounded-lg shadow hover:bg-gray-700 transition font-medium text-sm"
                   >
-                    <MessageSquare size={16} /> Contact Seller
-                  </button>
-
-                  <button
-                    onClick={() => handleRemove(cart_id)}
-                    className="flex items-center justify-center gap-2 text-red-500 font-semibold hover:text-red-600 transition mt-1"
-                  >
-                    <Trash2 size={16} /> Remove
+                    <MessageSquare size={14} /> Contact Seller
                   </button>
                 </div>
               </div>
