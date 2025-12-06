@@ -3,14 +3,15 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { message, context } = req.body;
+  const { message, context, condition } = req.body;
 
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({ error: "GEMINI_API_KEY missing." });
   }
 
   try {
-    const userText = `${context ? `Product context: ${JSON.stringify(context)}\n` : ""}${message}`;
+    const conditionText = condition ? `\n\nResponse instruction: ${condition}` : "";
+    const userText = `${context ? `Product context: ${JSON.stringify(context)}\n` : ""}${message}${conditionText}`;
 
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",

@@ -21,6 +21,7 @@ export default function App({ Component, pageProps }) {
   const [chatTarget, setChatTarget] = useState(null);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatbotContext, setChatbotContext] = useState(null);
+  const [chatbotCondition, setChatbotCondition] = useState(null);
 
   // Global chat/chatbot event listeners
   useEffect(() => {
@@ -29,7 +30,8 @@ export default function App({ Component, pageProps }) {
       setChatOpen(true);
     };
     const handleOpenChatbot = (e) => {
-      setChatbotContext(e.detail || null);
+      setChatbotContext(e.detail?.product || null);
+      setChatbotCondition(e.detail?.condition || null);
       setChatbotOpen(true);
     };
 
@@ -88,7 +90,8 @@ export default function App({ Component, pageProps }) {
               <ChatbotLayout
                 isOpen={chatbotOpen}
                 onClose={() => setChatbotOpen(false)}
-                productData={chatbotContext?.product || null}
+                productData={chatbotContext}
+                condition={chatbotCondition}
               />
             )}
           </>

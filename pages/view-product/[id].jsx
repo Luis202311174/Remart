@@ -320,7 +320,12 @@ export default function ProductPage({ product, similar = [], user }) {
                 </button>
 
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("openChatbot", { detail: { product } }))}
+                  onClick={() => window.dispatchEvent(new CustomEvent("openChatbot", { 
+                    detail: { 
+                      product: { ...product, location: address },
+                      condition: "You are a helpful product assistant. Provide accurate, concise information about the product. Answer questions based on the product details provided. Be friendly and professional. if they ask about the details make sure to send it like: The product is (product) and (your thoughts). no need to make it longer. if they ask about if the product is legit(make sure to actually scan through the product and do some research) send it like: The product (display product name in parenthesis) is (either legit or not) because (your thoughts)."
+                    } 
+                  }))}
                   className="flex-1 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-black text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <FontAwesomeIcon icon={faCircleInfo} /> Ask AI

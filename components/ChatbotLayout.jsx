@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faX, faRobot, faUser } from "@fortawesome/free-solid-svg-icons";
 import remarkGfm from "remark-gfm";
 
-export default function ChatbotLayout({ productData, isOpen, onClose }) {
+export default function ChatbotLayout({ productData, isOpen, onClose, condition }) {
   const [messages, setMessages] = useState([
     { sender: "bot", text: "Hi! How can I help you today?" },
   ]);
@@ -14,6 +14,12 @@ export default function ChatbotLayout({ productData, isOpen, onClose }) {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Use condition passed from event, or default
+  const defaultCondition = condition || "Respond in a friendly and helpful manner. Keep responses concise and relevant to the user's questions about the product.";
+  // Other options:
+  // "Only send a precise, concise response. Avoid extra details."
+  // "Summarize your response in a user-friendly way. Keep it simple and easy to understand."
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,7 +36,11 @@ export default function ChatbotLayout({ productData, isOpen, onClose }) {
       const res = await fetch("/api/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, context: productData }),
+        body: JSON.stringify({ 
+          message: text, 
+          context: productData,
+          condition: defaultCondition
+        }),
       });
 
       const data = await res.json();
@@ -61,9 +71,9 @@ export default function ChatbotLayout({ productData, isOpen, onClose }) {
   if (!isOpen) return null;
 
   const suggestedPrompts = [
-    "Tell me more about this product",
-    "What are the specs?",
+    "Is this legit?",
     "Is it available?",
+    "Tell me more about this product",
   ];
 
   return (
