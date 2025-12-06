@@ -15,6 +15,7 @@ import {
   faCircleInfo,
   faArrowLeftRotate,
   faLocationDot,
+  faUser
 } from "@fortawesome/free-solid-svg-icons";
 
 /* Leaflet map (client-only) */
@@ -225,6 +226,15 @@ export default function ProductPage({ product, similar = [], user }) {
                       <img src={img.img_path} className="w-full h-full object-cover rounded-md" />
                     </button>
                   ))}
+                </div>
+
+                {/* Seller Card */}
+                <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-sm mt-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faUser} className="text-gray-400" />
+                    Seller
+                  </p>
+                  <p className="text-lg font-semibold text-gray-100">{product.seller_label || "Unknown Seller"}</p>
                 </div>
               </>
             ) : (

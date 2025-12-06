@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getChat, fetchMessages, sendMessageLazy, subscribeToMessages } from "@/lib/chatService";
 
-export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAuthId, sellerAuthId, productId }) {
+export default function ChatWindow({ chatId: propChatId = null, buyerAuthId, sellerAuthId, productId }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [chatId, setChatId] = useState(propChatId);
@@ -12,17 +12,12 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
   const [partnerName, setPartnerName] = useState("Chat");
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
-  const [stableProductId, setStableProductId] = useState(productId);
 
-  // Reset state on prop changes
   useEffect(() => {
     setChatId(propChatId || null);
     setMessages([]);
-    setPartnerName("Chat");
-    setStableProductId(productId);
   }, [propChatId, productId]);
 
-  // Fetch current user
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -31,7 +26,6 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
     fetchUser();
   }, []);
 
-  // Load chat & messages
   useEffect(() => {
     if (!currentUser) return;
 
@@ -39,8 +33,8 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
       setLoading(true);
       let activeId = chatId;
 
-      if (!activeId && sellerAuthId && stableProductId) {
-        const existing = await getChat(buyerAuthId || currentUser.id, sellerAuthId, stableProductId);
+      if (!activeId && sellerAuthId && productId) {
+        const existing = await getChat(buyerAuthId || currentUser.id, sellerAuthId, productId);
         if (existing) {
           activeId = existing.chat_id;
           setChatId(existing.chat_id);
@@ -56,13 +50,12 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
     };
 
     loadChat();
-  }, [currentUser, buyerAuthId, sellerAuthId, stableProductId, chatId]);
+  }, [currentUser, buyerAuthId, sellerAuthId, chatId, productId]);
 
-  // Load partner name
   useEffect(() => {
-    const loadPartner = async () => {
-      if (!currentUser) return;
+    if (!currentUser) return;
 
+    const loadPartner = async () => {
       let partnerId = currentUser.id === buyerAuthId ? sellerAuthId : buyerAuthId;
       if (!partnerId) partnerId = sellerAuthId || buyerAuthId || null;
 
@@ -87,19 +80,16 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
     loadPartner();
   }, [chatId, currentUser, buyerAuthId, sellerAuthId]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!chatId) return;
     const unsubscribe = subscribeToMessages(chatId, (msg) => setMessages((prev) => [...prev, msg]));
     return unsubscribe;
   }, [chatId]);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send message
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || !currentUser) return;
@@ -108,15 +98,11 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
 
     const message = await sendMessageLazy({
       otherUserId,
-      product_id: stableProductId,
+      product_id: productId,
       content: input.trim(),
     });
 
-    if (message?.chat_id && !chatId) {
-      setChatId(message.chat_id);
-      const msgs = await fetchMessages(message.chat_id);
-      setMessages(msgs);
-    }
+    if (message?.chat_id && !chatId) setChatId(message.chat_id);
 
     setInput("");
   };
@@ -129,7 +115,7 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-800">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-800 scrollbar-thin scrollbar-thumb-green-500 scrollbar-track-transparent">
         {loading ? (
           <p className="text-gray-400 text-center mt-10 text-sm">Loading messages...</p>
         ) : messages.length === 0 ? (
@@ -140,8 +126,8 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
               key={m.message_id}
               className={`p-3 rounded-2xl max-w-[75%] break-words shadow-sm ${
                 m.sender_auth_id === currentUser?.id
-                  ? "ml-auto bg-green-600 text-white"
-                  : "bg-gray-700 text-gray-200"
+                  ? "ml-auto bg-gray-300 text-black"
+                  : "bg-gray-600 text-white"
               }`}
             >
               <p className="text-sm">{m.content}</p>
@@ -153,12 +139,12 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
 
       {/* Input */}
       <form onSubmit={handleSend} className="p-4 border-t border-gray-700 flex gap-2 bg-gray-900">
-        <input
-          type="text"
+        <textarea
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 border border-gray-700 rounded-2xl p-3 text-sm bg-black text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500"
+          className="flex-1 border border-gray-700 rounded-2xl p-3 text-sm bg-black text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 resize-none overflow-hidden"
         />
         <button
           type="submit"
@@ -168,6 +154,26 @@ export default function ChatWindow({ onClose, chatId: propChatId = null, buyerAu
           Send
         </button>
       </form>
+
+      <style jsx>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: #16a34a;
+          border-radius: 8px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background-color: #22c55e;
+        }
+        .scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: #16a34a transparent;
+        }
+      `}</style>
     </div>
   );
 }
