@@ -132,6 +132,31 @@ export default function MyListings({ loadPage }) {
     setShowEditModal(true);
   };
 
+  // Toggle product status (sold/unsold)
+  const toggleSoldStatus = async (product, markSold) => {
+    const newStatus = markSold ? "sold" : "available";
+    const { error } = await supabase
+      .from("products")
+      .update({ status: newStatus })
+      .eq("product_id", product.product_id);
+
+    if (error) alert("❌ Failed to update status: " + error.message);
+    else {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.product_id === product.product_id
+            ? { ...p, status: newStatus }
+            : p
+        )
+      );
+      setSuccessMsg(
+        markSold
+          ? "✅ Product marked as sold!"
+          : "✅ Product marked as available!"
+      );
+    }
+  };
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-[60vh] text-gray-400 text-lg bg-gray-900">
@@ -199,60 +224,6 @@ export default function MyListings({ loadPage }) {
         />
       )}
 
-      {/* Map Modal */}
-      {mapModalProduct && (
-        <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-lg shadow-xl overflow-hidden animate-slide-up">
-            <button
-              onClick={() => setMapModalProduct(null)}
-              className="absolute top-4 right-4 bg-gray-800/90 shadow-lg border rounded-full p-2 z-[300] hover:bg-gray-700 transition"
-            >
-              <X className="w-5 h-5 text-green-400" />
-            </button>
-
-            <LeafletMapWithDraw
-              center={[mapModalProduct.lat, mapModalProduct.lng]}
-              radius={mapModalProduct.radius || 300}
-              onCircleChange={({ lat, lng, radius }) => {
-                setProducts((prev) =>
-                  prev.map((p) =>
-                    p.product_id === mapModalProduct.product_id
-                      ? { ...p, lat, lng, radius }
-                      : p
-                  )
-                );
-                setMapModalProduct((prev) => ({ ...prev, lat, lng, radius }));
-              }}
-              style={{ height: "100%" }}
-            />
-
-            <div className="absolute bottom-6 right-6 z-[300]">
-              <button
-                onClick={async () => {
-                  const { error } = await supabase
-                    .from("products")
-                    .update({
-                      lat: mapModalProduct.lat,
-                      lng: mapModalProduct.lng,
-                      radius: mapModalProduct.radius,
-                    })
-                    .eq("product_id", mapModalProduct.product_id);
-
-                  if (error) alert("❌ Failed to save: " + error.message);
-                  else {
-                    setSuccessMsg("✅ Location updated!");
-                    setMapModalProduct(null);
-                  }
-                }}
-                className="px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg shadow-lg hover:bg-green-600 transition"
-              >
-                Save Location
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-green-400">
         <List className="w-7 h-7" />
@@ -299,32 +270,6 @@ export default function MyListings({ loadPage }) {
                 </div>
               )}
 
-              {/* Map Preview */}
-              {product.lat && product.lng && (
-                <div
-                  onClick={() =>
-                    product.status !== "sold" && setMapModalProduct(product)
-                  }
-                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-gray-700 relative mb-3 ${
-                    product.status === "sold"
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  <div className="absolute top-2 left-2 bg-gray-900/70 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">
-                    <MapPin className="w-4 h-4 text-green-400" />
-                    Preview
-                  </div>
-
-                  <LeafletMapWithDraw
-                    center={[product.lat, product.lng]}
-                    radius={product.radius || 300}
-                    previewOnly={true}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </div>
-              )}
-
               {/* Title + Category */}
               <h3 className="font-semibold text-lg text-green-400 line-clamp-1">
                 {product.title}
@@ -364,27 +309,18 @@ export default function MyListings({ loadPage }) {
                   >
                     <Trash2 size={16} />
                   </button>
-                  {product.status !== "sold" && (
-                    <button
-                      onClick={async () => {
-                        const { error } = await supabase
-                          .from("products")
-                          .update({ status: "sold" })
-                          .eq("product_id", product.product_id);
 
-                        if (error)
-                          alert("❌ Failed to mark as sold: " + error.message);
-                        else {
-                          setProducts((prev) =>
-                            prev.map((p) =>
-                              p.product_id === product.product_id
-                                ? { ...p, status: "sold" }
-                                : p
-                            )
-                          );
-                          setSuccessMsg("✅ Product marked as sold!");
-                        }
-                      }}
+                  {/* Sold / Unsold toggle */}
+                  {product.status === "sold" ? (
+                    <button
+                      onClick={() => toggleSoldStatus(product, false)}
+                      className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
+                    >
+                      Unsold
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => toggleSoldStatus(product, true)}
                       className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
                     >
                       Sold
