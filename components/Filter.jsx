@@ -8,21 +8,18 @@ import { SlidersHorizontal } from "lucide-react";
 export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = false }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const [isOpen, setIsOpen] = useState(false);
 
-  // State values
   const [category, setCategory] = useState(searchParams.get("category") || "all");
   const [condition, setCondition] = useState(searchParams.get("condition") || "all");
   const [minPrice, setMinPrice] = useState(searchParams.get("min_price") || "");
   const [maxPrice, setMaxPrice] = useState(searchParams.get("max_price") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "newest");
-
   const [categories, setCategories] = useState([]);
 
-  /* Load categories */
+  // Load categories
   useEffect(() => {
-    const load = async () => {
+    const loadCategories = async () => {
       const { data } = await supabase
         .from("categories")
         .select("cat_id, cat_name")
@@ -33,10 +30,10 @@ export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = f
         setCategories(unique);
       }
     };
-    load();
+    loadCategories();
   }, []);
 
-  /* Sync URL → state */
+  // Sync URL → state
   useEffect(() => {
     setCategory(searchParams.get("category") || "all");
     setCondition(searchParams.get("condition") || "all");
@@ -45,7 +42,7 @@ export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = f
     setSort(searchParams.get("sort") || "newest");
   }, [searchParams]);
 
-  /* Apply filters */
+  // Apply filters
   const handleSubmit = (e) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
@@ -60,7 +57,6 @@ export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = f
     router.push(`?${params.toString()}`);
   };
 
-  /* Clear filters */
   const handleClear = () => {
     const q = searchParams.get("q") || "";
     setIsOpen(false);
@@ -68,7 +64,7 @@ export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = f
   };
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 relative">
 
       {/* Items Count + Filter Icon */}
       <div className="flex items-center justify-between mb-2">
@@ -78,95 +74,109 @@ export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = f
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`p-2 rounded-full border transition flex items-center 
+          className={`p-2 rounded-full border transition flex items-center
             ${darkTheme ? "border-gray-600 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-100"}`}
+          aria-label="Toggle Filters"
         >
           <SlidersHorizontal className={`h-5 w-5 ${darkTheme ? "text-green-500" : "text-gray-700"}`} />
         </button>
       </div>
 
-      {/* Dropdown Panel */}
-      {isOpen && (
+      {/* Filter Panel */}
+      <div
+        className={`absolute top-full right-0 mt-2 w-full max-w-lg z-50 transform transition-all duration-300
+          ${isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"}`}
+      >
         <form
           onSubmit={handleSubmit}
-          className={`mt-2 flex flex-wrap gap-3 p-4 rounded-xl border transition-all 
-            ${darkTheme ? "bg-gray-900 border-gray-700 shadow-lg" : "bg-white border-gray-200 shadow-md"}`}
+          className={`bg-gradient-to-b from-gray-900 to-black rounded-xl p-4 shadow-lg border border-green-600 flex flex-col gap-4`}
         >
-          {/* Category */}
-          <div className="flex-1 min-w-[120px]">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500 
-                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-            >
-              <option value="all">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat.cat_id} value={cat.cat_id}>
-                  {cat.cat_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="flex flex-wrap gap-3">
 
-          {/* Condition */}
-          <div className="flex-1 min-w-[120px]">
-            <select
-              value={condition}
-              onChange={(e) => setCondition(e.target.value)}
-              className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
-                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-            >
-              <option value="all">All Conditions</option>
-              <option value="New">New</option>
-              <option value="Like New">Like New</option>
-              <option value="Good">Good</option>
-              <option value="Fair">Fair</option>
-            </select>
-          </div>
+            {/* Category */}
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-sm text-gray-400 mb-1 block">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                  ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+              >
+                <option value="all">All Categories</option>
+                {categories.map(cat => (
+                  <option key={cat.cat_id} value={cat.cat_id}>{cat.cat_name}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Price Range */}
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Min ₱"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              className={`w-24 p-2 rounded border focus:ring-1 focus:ring-green-500
-                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-            />
-            <input
-              type="number"
-              placeholder="Max ₱"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className={`w-24 p-2 rounded border focus:ring-1 focus:ring-green-500
-                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-            />
-          </div>
+            {/* Condition */}
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-sm text-gray-400 mb-1 block">Condition</label>
+              <select
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+                className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                  ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+              >
+                <option value="all">All Conditions</option>
+                <option value="New">New</option>
+                <option value="Like New">Like New</option>
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+              </select>
+            </div>
 
-          {/* Sort */}
-          <div className="flex-1 min-w-[140px]">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
-                ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="price_low">Price: Low → High</option>
-              <option value="price_high">Price: High → Low</option>
-            </select>
+            {/* Price */}
+            <div className="flex gap-2 min-w-[140px]">
+              <div className="flex-1">
+                <label className="text-sm text-gray-400 mb-1 block">Min Price</label>
+                <input
+                  type="number"
+                  placeholder="₱ Min"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                    ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-sm text-gray-400 mb-1 block">Max Price</label>
+                <input
+                  type="number"
+                  placeholder="₱ Max"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                    ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+                />
+              </div>
+            </div>
+
+            {/* Sort */}
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-sm text-gray-400 mb-1 block">Sort By</label>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className={`w-full p-2 rounded border focus:ring-1 focus:ring-green-500
+                  ${darkTheme ? "bg-black border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"}`}
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="price_low">Price: Low → High</option>
+                <option value="price_high">Price: High → Low</option>
+              </select>
+            </div>
+
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-2 mt-2 w-full">
+          <div className="flex gap-2 mt-2">
             <button
               type="submit"
               className="flex-1 bg-green-500 text-black py-2 rounded hover:bg-green-600 transition"
             >
-              Apply Filters
+              Apply
             </button>
 
             <button
@@ -178,7 +188,7 @@ export default function Filter({ itemCount = 0, darkTheme = false, hasSearch = f
             </button>
           </div>
         </form>
-      )}
+      </div>
     </div>
   );
 }
