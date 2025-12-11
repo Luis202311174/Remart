@@ -139,7 +139,7 @@ export default function Browse({ items = [], user }) {
       </div>
 
       {/* --------------------------- MAIN CONTENT ------------------------- */}
-<div className="max-w-7xl mx-auto flex gap-8 mt-12 px-6 pb-20">
+    <div className="max-w-[1700px] mx-auto flex gap-12 mt-12 px-12 pb-20">
 
   {/* --------------------------- LEFT SIDEBAR --------------------------- */}
   <aside className="hidden lg:block w-72 flex-shrink-0">
