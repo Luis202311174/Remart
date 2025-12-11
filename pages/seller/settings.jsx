@@ -17,6 +17,22 @@ export default function SellerSettings() {
   const [modal, setModal] = useState(null); // "products" | "account" | null
   const [flash, setFlash] = useState(null); // success/error message
   const [error, setError] = useState("");
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const exportData = async (format) => {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+
+    const res = await fetch(`/api/export-seller?format=${format}`, {
+      method: "GET",
+      headers: {
+        token: token,
+      },
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
 
   // ✅ Load seller info
   useEffect(() => {
@@ -167,35 +183,76 @@ export default function SellerSettings() {
         </p>
       </div>
 
-      {/* Danger Zone */}
-      <div className="border border-red-700 bg-red-900/20 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle className="w-5 h-5 text-red-500" />
-          <h3 className="text-lg font-semibold text-red-500">Danger Zone</h3>
-        </div>
-        <p className="text-sm text-red-400 mb-4">
-          Actions here are permanent and cannot be undone.
+      {/* Export Section */}
+      <div className="mb-8 bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-green-500 mb-2">Export My Data</h3>
+        <p className="text-sm text-gray-300 mb-4">
+          Export your seller information including your products and chats.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => setModal("products")}
-            disabled={deleting}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition disabled:opacity-50"
-          >
-            <Trash2 className="w-5 h-5" />
-            Delete All My Products
-          </button>
+        <button
+          onClick={() => exportData("pdf")}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+        >
+          Export as PDF
+        </button>
 
-          <button
-            onClick={() => setModal("account")}
-            disabled={deleting}
-            className="flex items-center gap-2 px-4 py-2 bg-red-800 hover:bg-red-900 text-white rounded-lg transition disabled:opacity-50"
-          >
-            <UserX className="w-5 h-5" />
-            Delete My Seller Account
-          </button>
+        <button
+          onClick={() => exportData("csv")}
+          className="ml-3 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition"
+        >
+          Export as CSV
+        </button>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="border border-red-700 bg-red-900/20 rounded-xl p-6 relative overflow-hidden">
+
+        {/* Blur overlay when closed */}
+        {!dangerOpen && (
+          <div className="absolute inset-0 backdrop-blur-sm bg-red-900/30 rounded-xl"></div>
+        )}
+
+        <div className={`transition-all duration-300 ${!dangerOpen && "opacity-40 blur-sm"}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <h3 className="text-lg font-semibold text-red-500">Danger Zone</h3>
+          </div>
+          <p className="text-sm text-red-400 mb-4">
+            Actions here are permanent and cannot be undone.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => setModal("products")}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition disabled:opacity-50"
+            >
+              <Trash2 className="w-5 h-5" />
+              Delete All My Products
+            </button>
+
+            <button
+              onClick={() => setModal("account")}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2 bg-red-800 hover:bg-red-900 text-white rounded-lg transition disabled:opacity-50"
+            >
+              <UserX className="w-5 h-5" />
+              Delete My Seller Account
+            </button>
+          </div>
         </div>
+
+        {/* Reveal button */}
+        {!dangerOpen && (
+          <button
+            onClick={() => setDangerOpen(true)}
+            className="absolute inset-0 flex items-center justify-center text-white font-medium bg-red-900/40 hover:bg-red-900/60 backdrop-blur-sm rounded-xl transition"
+          >
+            🔓 Show Danger Zone
+          </button>
+        )}
+
       </div>
 
       {/* Confirmation Modal */}
