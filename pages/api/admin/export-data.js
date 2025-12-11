@@ -171,6 +171,11 @@ export default async function handler(req, res) {
     // ========= SELLERS =========
     if (dataset === "all" || dataset === "sellers") {
       newPage();
+      doc.setFontSize(18);
+      doc.text("Remart Administrative Export", 14, 18);
+      doc.setFontSize(11);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.line(14, 30, 200, 30);
       doc.setFontSize(14);
       doc.text("Sellers", 14, 39);
 
@@ -191,6 +196,11 @@ export default async function handler(req, res) {
     // ========= PRODUCTS =========
     if (dataset === "all" || dataset === "products") {
       newPage();
+      doc.setFontSize(18);
+      doc.text("Remart Administrative Export", 14, 18);
+      doc.setFontSize(11);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.line(14, 30, 200, 30);
       doc.setFontSize(14);
       doc.text("Products", 14, 39);
 
@@ -214,6 +224,11 @@ export default async function handler(req, res) {
     // ========= CART =========
     if (dataset === "all" || dataset === "cart") {
       newPage();
+      doc.setFontSize(18);
+      doc.text("Remart Administrative Export", 14, 18);
+      doc.setFontSize(11);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.line(14, 30, 200, 30);
       doc.setFontSize(14);
       doc.text("Saved Products (Cart)", 14, 39);
 
@@ -235,6 +250,11 @@ export default async function handler(req, res) {
     // ========= CHATS =========
     if (dataset === "all" || dataset === "chats") {
       newPage();
+      doc.setFontSize(18);
+      doc.text("Remart Administrative Export", 14, 18);
+      doc.setFontSize(11);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.line(14, 30, 200, 30);
       doc.setFontSize(14);
       doc.text("Chats", 14, 39);
 
