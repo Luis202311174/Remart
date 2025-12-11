@@ -1,0 +1,181 @@
+[33mcommit cfcbffd4b356a288f957b1afe207a2777ea7cd24[m
+Author: CjBogs <202310393@gordoncollege.edu.ph>
+Date:   Sat Dec 6 10:56:07 2025 +0800
+
+    Updated Files
+
+[1mdiff --git a/components/ChatbotLayout.jsx b/components/ChatbotLayout.jsx[m
+[1mindex 8c7395f..f955b99 100644[m
+[1m--- a/components/ChatbotLayout.jsx[m
+[1m+++ b/components/ChatbotLayout.jsx[m
+[36m@@ -204,4 +204,4 @@[m [mexport default function ChatbotLayout({ productData, isOpen, onClose, condition[m
+       `}</style>[m
+     </div>[m
+   );[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/pages/_app.js b/pages/_app.js[m
+[1mindex fd646da..0b1c34d 100644[m
+[1m--- a/pages/_app.js[m
+[1m+++ b/pages/_app.js[m
+[36m@@ -99,4 +99,4 @@[m [mexport default function App({ Component, pageProps }) {[m
+       </div>[m
+     </SessionContextProvider>[m
+   );[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/pages/api/chatbot.js b/pages/api/chatbot.js[m
+[1mindex ca6337a..364731e 100644[m
+[1m--- a/pages/api/chatbot.js[m
+[1m+++ b/pages/api/chatbot.js[m
+[36m@@ -53,4 +53,4 @@[m [mexport default async function handler(req, res) {[m
+     console.error("Gemini API error:", err);[m
+     res.status(500).json({ error: "Failed to fetch from Gemini." });[m
+   }[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/pages/seller/my-listings.jsx b/pages/seller/my-listings.jsx[m
+[1mindex 6ebe1b0..0d30460 100644[m
+[1m--- a/pages/seller/my-listings.jsx[m
+[1m+++ b/pages/seller/my-listings.jsx[m
+[36m@@ -132,6 +132,31 @@[m [mexport default function MyListings({ loadPage }) {[m
+     setShowEditModal(true);[m
+   };[m
+ [m
+[32m+[m[32m  // Toggle product status (sold/unsold)[m
+[32m+[m[32m  const toggleSoldStatus = async (product, markSold) => {[m
+[32m+[m[32m    const newStatus = markSold ? "sold" : "available";[m
+[32m+[m[32m    const { error } = await supabase[m
+[32m+[m[32m      .from("products")[m
+[32m+[m[32m      .update({ status: newStatus })[m
+[32m+[m[32m      .eq("product_id", product.product_id);[m
+[32m+[m
+[32m+[m[32m    if (error) alert("❌ Failed to update status: " + error.message);[m
+[32m+[m[32m    else {[m
+[32m+[m[32m      setProducts((prev) =>[m
+[32m+[m[32m        prev.map((p) =>[m
+[32m+[m[32m          p.product_id === product.product_id[m
+[32m+[m[32m            ? { ...p, status: newStatus }[m
+[32m+[m[32m            : p[m
+[32m+[m[32m        )[m
+[32m+[m[32m      );[m
+[32m+[m[32m      setSuccessMsg([m
+[32m+[m[32m        markSold[m
+[32m+[m[32m          ? "✅ Product marked as sold!"[m
+[32m+[m[32m          : "✅ Product marked as available!"[m
+[32m+[m[32m      );[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+   if (loading)[m
+     return ([m
+       <div className="flex justify-center items-center h-[60vh] text-gray-400 text-lg bg-gray-900">[m
+[36m@@ -199,60 +224,6 @@[m [mexport default function MyListings({ loadPage }) {[m
+         />[m
+       )}[m
+ [m
+[31m-      {/* Map Modal */}[m
+[31m-      {mapModalProduct && ([m
+[31m-        <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">[m
+[31m-          <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-lg shadow-xl overflow-hidden animate-slide-up">[m
+[31m-            <button[m
+[31m-              onClick={() => setMapModalProduct(null)}[m
+[31m-              className="absolute top-4 right-4 bg-gray-800/90 shadow-lg border rounded-full p-2 z-[300] hover:bg-gray-700 transition"[m
+[31m-            >[m
+[31m-              <X className="w-5 h-5 text-green-400" />[m
+[31m-            </button>[m
+[31m-[m
+[31m-            <LeafletMapWithDraw[m
+[31m-              center={[mapModalProduct.lat, mapModalProduct.lng]}[m
+[31m-              radius={mapModalProduct.radius || 300}[m
+[31m-              onCircleChange={({ lat, lng, radius }) => {[m
+[31m-                setProducts((prev) =>[m
+[31m-                  prev.map((p) =>[m
+[31m-                    p.product_id === mapModalProduct.product_id[m
+[31m-                      ? { ...p, lat, lng, radius }[m
+[31m-                      : p[m
+[31m-                  )[m
+[31m-                );[m
+[31m-                setMapModalProduct((prev) => ({ ...prev, lat, lng, radius }));[m
+[31m-              }}[m
+[31m-              style={{ height: "100%" }}[m
+[31m-            />[m
+[31m-[m
+[31m-            <div className="absolute bottom-6 right-6 z-[300]">[m
+[31m-              <button[m
+[31m-                onClick={async () => {[m
+[31m-                  const { error } = await supabase[m
+[31m-                    .from("products")[m
+[31m-                    .update({[m
+[31m-                      lat: mapModalProduct.lat,[m
+[31m-                      lng: mapModalProduct.lng,[m
+[31m-                      radius: mapModalProduct.radius,[m
+[31m-                    })[m
+[31m-                    .eq("product_id", mapModalProduct.product_id);[m
+[31m-[m
+[31m-                  if (error) alert("❌ Failed to save: " + error.message);[m
+[31m-                  else {[m
+[31m-                    setSuccessMsg("✅ Location updated!");[m
+[31m-                    setMapModalProduct(null);[m
+[31m-                  }[m
+[31m-                }}[m
+[31m-                className="px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg shadow-lg hover:bg-green-600 transition"[m
+[31m-              >[m
+[31m-                Save Location[m
+[31m-              </button>[m
+[31m-            </div>[m
+[31m-          </div>[m
+[31m-        </div>[m
+[31m-      )}[m
+[31m-[m
+       {/* Header */}[m
+       <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-green-400">[m
+         <List className="w-7 h-7" />[m
+[36m@@ -299,32 +270,6 @@[m [mexport default function MyListings({ loadPage }) {[m
+                 </div>[m
+               )}[m
+ [m
+[31m-              {/* Map Preview */}[m
+[31m-              {product.lat && product.lng && ([m
+[31m-                <div[m
+[31m-                  onClick={() =>[m
+[31m-                    product.status !== "sold" && setMapModalProduct(product)[m
+[31m-                  }[m
+[31m-                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-gray-700 relative mb-3 ${[m
+[31m-                    product.status === "sold"[m
+[31m-                      ? "opacity-50 cursor-not-allowed"[m
+[31m-                      : "cursor-pointer"[m
+[31m-                  }`}[m
+[31m-                >[m
+[31m-                  <div className="absolute top-2 left-2 bg-gray-900/70 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">[m
+[31m-                    <MapPin className="w-4 h-4 text-green-400" />[m
+[31m-                    Preview[m
+[31m-                  </div>[m
+[31m-[m
+[31m-                  <LeafletMapWithDraw[m
+[31m-                    center={[product.lat, product.lng]}[m
+[31m-                    radius={product.radius || 300}[m
+[31m-                    previewOnly={true}[m
+[31m-                    style={{ width: "100%", height: "100%" }}[m
+[31m-                  />[m
+[31m-                </div>[m
+[31m-              )}[m
+[31m-[m
+               {/* Title + Category */}[m
+               <h3 className="font-semibold text-lg text-green-400 line-clamp-1">[m
+                 {product.title}[m
+[36m@@ -364,27 +309,18 @@[m [mexport default function MyListings({ loadPage }) {[m
+                   >[m
+                     <Trash2 size={16} />[m
+                   </button>[m
+[31m-                  {product.status !== "sold" && ([m
+[32m+[m
+[32m+[m[32m                  {/* Sold / Unsold toggle */}[m
+[32m+[m[32m                  {product.status === "sold" ? ([m
+[32m+[m[32m                    <button[m
+[32m+[m[32m                      onClick={() => toggleSoldStatus(product, false)}[m
+[32m+[m[32m                      className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"[m
+[32

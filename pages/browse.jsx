@@ -1,21 +1,29 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import Header from "../components/Header";
 import ItemCard from "../components/ItemCard";
+import ChatLayout from "@/components/ChatLayout";
+import ChatbotLayout from "@/components/ChatbotLayout";
+
 import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
 import { fetchFilteredProducts } from "@/lib/productFetcher";
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import { supabase } from "@/lib/supabaseClient";
 
+/* ------------------------------- SERVER SIDE ------------------------------ */
 export async function getServerSideProps(context) {
   const supabase = createPagesServerClient(context);
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session) {
     return { redirect: { destination: "/login", permanent: false } };
   }
 
   const user = session.user;
-
-  // Extract query filters
   const {
     category = "all",
     condition = "all",
@@ -24,10 +32,9 @@ export async function getServerSideProps(context) {
     sort = "newest",
   } = context.query;
 
-  // Fetch products using cat_id as filter
   const { data: items } = await fetchFilteredProducts({
     supabase,
-    category, // should be the actual cat_id
+    category,
     condition,
     minPrice: min_price,
     maxPrice: max_price,
@@ -35,27 +42,68 @@ export async function getServerSideProps(context) {
     limit: 50,
   });
 
-  return { props: { items: items || [], user, activeCategory: category } };
+  return {
+    props: { items: items || [], user },
+  };
 }
 
-export default function Browse({ items = [], user, activeCategory }) {
+/* --------------------------------- CLIENT -------------------------------- */
+export default function Browse({ items = [], user }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  /* ----------------------------- FILTER STATES ----------------------------- */
+  const [category, setCategory] = useState("all");
+  const [condition, setCondition] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [categories, setCategories] = useState([]);
+
+  /* ------------------------------ CHAT STATES ------------------------------ */
   const [chatOpen, setChatOpen] = useState(false);
   const [chatTarget, setChatTarget] = useState(null);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatbotContext, setChatbotContext] = useState(null);
 
-  const router = useRouter();
+  /* --------------------------- LOAD CATEGORIES ----------------------------- */
+  useEffect(() => {
+    const loadCategories = async () => {
+      const { data } = await supabase
+        .from("categories")
+        .select("cat_id, cat_name")
+        .order("cat_name", { ascending: true });
 
-  // Define categories with ID mapping to your database cat_id
-  const categories = [
-    { id: "all", label: "All" },
-    { id: "1", label: "Textbooks" },
-    { id: "2", label: "Electronics" },
-    { id: "3", label: "Furniture" },
-    { id: "4", label: "Clothing" },
-    { id: "5", label: "Sports" },
-  ];
+      if (data) {
+        const unique = Array.from(new Map(data.map((c) => [c.cat_id, c])).values());
+        setCategories(unique);
+      }
+    };
+    loadCategories();
+  }, []);
 
+  /* -------------------------- SYNC URL → STATE ----------------------------- */
+  useEffect(() => {
+    setCategory(searchParams.get("category") || "all");
+    setCondition(searchParams.get("condition") || "all");
+    setMinPrice(searchParams.get("min_price") || "");
+    setMaxPrice(searchParams.get("max_price") || "");
+    setSort(searchParams.get("sort") || "newest");
+  }, [searchParams]);
+
+  /* ---------------------------- APPLY FILTERS ------------------------------ */
+  const handleApplyFilters = () => {
+    const query = new URLSearchParams();
+    if (category !== "all") query.set("category", category);
+    if (condition !== "all") query.set("condition", condition);
+    if (minPrice) query.set("min_price", minPrice);
+    if (maxPrice) query.set("max_price", maxPrice);
+    if (sort) query.set("sort", sort);
+
+    router.push(`/browse?${query.toString()}`);
+  };
+
+  /* -------------------------- CHAT + CHATBOT EVENTS ------------------------ */
   useEffect(() => {
     const handleOpenChat = (e) => {
       setChatTarget(e.detail);
@@ -75,101 +123,136 @@ export default function Browse({ items = [], user, activeCategory }) {
     };
   }, []);
 
+  /* --------------------------------- UI ----------------------------------- */
   return (
-    <main className="font-inter min-h-screen flex flex-col bg-gray-900 text-white">
+    <main className="font-inter min-h-screen flex flex-col bg-[#0f1623] text-white">
 
-      {/* Page Container */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-10">
+      {/* ----------------------------- HEADER ----------------------------- */}
+      <Header user={user} />
 
-        {/* Back Button */}
-        <div className="mb-6">
-          <Link
-            href="/"
-            className="px-4 py-2 inline-block rounded-full bg-gray-800 border border-gray-700 text-gray-200 font-medium hover:bg-gray-700 transition"
-          >
-            ← Back to Landing Page
-          </Link>
-        </div>
-
-        {/* Page Title */}
-      <div className="text-center mb-8">
-  <h1 className="text-4xl font-bold text-white">Browse Items</h1>
-  <p className="text-gray-300 mt-2 max-w-lg mx-auto">
-    Discover a variety of second-hand items—electronics, clothing, books, and more—posted by people near you.
-  </p>
-</div>
-
-        {/* Category Bar */}
-        <div className="flex justify-center gap-3 flex-wrap mb-10">
-          {categories.map((cat) => {
-            const isActive = activeCategory === cat.id;
-            return (
-              <Link
-                key={cat.id}
-                href={{
-                  pathname: "/browse",
-                  query: { ...router.query, category: cat.id },
-                }}
-              >
-                <div
-                  className={`px-4 py-2 rounded-full text-sm font-medium border transition-all cursor-pointer
-                    ${isActive
-                      ? "bg-green-500 text-white border-green-500 shadow-md"
-                      : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
-                    }`}
-                >
-                  {cat.label}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Items */}
-        {items.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 animate-fadeIn">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-700 p-1"
-              >
-                <ItemCard item={item} darkTheme />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center text-center py-32 animate-fadeIn">
-            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-              <span className="text-3xl">😕</span>
-            </div>
-            <p className="text-gray-200 text-2xl font-semibold">No items found</p>
-            <p className="text-gray-400 mt-2">
-              Try adjusting the filters or search keywords.
-            </p>
-          </div>
-        )}
+      {/* ----------------------------- TITLE ------------------------------ */}
+      <div className="w-full mt-[90px] text-center px-6">
+        <h1 className="text-4xl font-bold">Browse Items</h1>
+        <p className="text-gray-300 mt-2 max-w-2xl mx-auto">
+          Discover a variety of second-hand items—electronics, clothing, books, and more—posted by people near you.
+        </p>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-700 bg-gray-900 py-8 text-center text-gray-400 text-sm">
+      {/* --------------------------- MAIN CONTENT ------------------------- */}
+<div className="max-w-7xl mx-auto flex gap-8 mt-12 px-6 pb-20">
+
+  {/* --------------------------- LEFT SIDEBAR --------------------------- */}
+  <aside className="hidden lg:block w-72 flex-shrink-0">
+    <div className="bg-[#0f1623] border border-gray-700 rounded-xl p-6 sticky top-32 shadow-md">
+
+      <h2 className="text-xl font-bold mb-4">Filters ({items.length})</h2>
+
+      {/* CATEGORY */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold mb-2">Category</h3>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full bg-[#0e1420] border border-gray-700 rounded p-2"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat.cat_id} value={cat.cat_id}>
+              {cat.cat_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* CONDITION */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold mb-2">Condition</h3>
+        <select
+          value={condition}
+          onChange={(e) => setCondition(e.target.value)}
+          className="w-full bg-[#0e1420] border border-gray-700 rounded p-2"
+        >
+          <option value="all">All Conditions</option>
+          <option value="new">New</option>
+          <option value="used">Used</option>
+        </select>
+      </div>
+
+      {/* PRICE */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold mb-2">Price</h3>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            placeholder="Min Price"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            className="w-1/2 bg-[#0e1420] border border-gray-700 rounded p-2"
+          />
+          <input
+            type="number"
+            placeholder="Max Price"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            className="w-1/2 bg-[#0e1420] border border-gray-700 rounded p-2"
+          />
+        </div>
+      </div>
+
+      {/* SORT */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold mb-2">Sort By</h3>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="w-full bg-[#0e1420] border border-gray-700 rounded p-2"
+        >
+          <option value="newest">Newest</option>
+          <option value="price_low">Price: Low to High</option>
+          <option value="price_high">Price: High to Low</option>
+        </select>
+      </div>
+
+      {/* APPLY BUTTON */}
+      <button
+        onClick={handleApplyFilters}
+        className="w-full bg-green-600 hover:bg-green-500 mt-4 py-2 rounded font-semibold"
+      >
+        Apply Filters
+      </button>
+    </div>
+  </aside>
+
+  {/* ----------------------------- PRODUCTS GRID ----------------------------- */}
+  <section className="flex-1">
+    {items.length > 0 ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="bg-[#0e1420] p-2 rounded-xl border border-gray-700 hover:border-gray-500 transition"
+          >
+            <ItemCard item={item} darkTheme />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="text-center py-32">
+        <p className="text-2xl font-semibold text-gray-300">No items found</p>
+        <p className="text-gray-500 mt-2">Try adjusting the filters.</p>
+      </div>
+    )}
+  </section>
+</div>
+
+      {/* ----------------------------- FOOTER ----------------------------- */}
+      <footer className="text-center text-gray-500 py-10 border-t border-gray-700 mt-10">
         © {new Date().getFullYear()} CampusMart — All rights reserved.
       </footer>
 
-      {/* Chat Modal */}
-      {chatOpen && (
-        <ChatLayout
-          onClose={() => setChatOpen(false)}
-          chatTarget={chatTarget}
-        />
-      )}
-
-      {/* Chatbot Modal */}
-      {chatbotOpen && (
-        <ChatbotLayout
-          onClose={() => setChatbotOpen(false)}
-          productData={chatbotContext?.product || null}
-        />
-      )}
+      {/* ----------------------------- CHAT WINDOWS ----------------------------- */}
+      {chatOpen && <ChatLayout onClose={() => setChatOpen(false)} chatTarget={chatTarget} />}
+      {chatbotOpen && <ChatbotLayout onClose={() => setChatbotOpen(false)} productData={chatbotContext?.product} />}
     </main>
   );
 }

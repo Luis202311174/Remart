@@ -3,8 +3,8 @@
 import * as Icons from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
 import Header from "@/components/Header";
+import { fetchAllProducts } from "@/lib/productFetcher";
 
 const RenderIcon = ({ name, className }) => {
   const Icon = Icons[name];
@@ -13,83 +13,93 @@ const RenderIcon = ({ name, className }) => {
 
 export default function Landing() {
   const [user, setUser] = useState(null);
+  const [latestProducts, setLatestProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
+  // Load current user and auth state
   useEffect(() => {
     const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user || null);
+      try {
+        const { data: { user: currentUser } } = await (await import("@/lib/supabaseClient")).supabase.auth.getUser();
+        setUser(currentUser || null);
 
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user || null);
-      });
+        const { data: listener } = (await import("@/lib/supabaseClient")).supabase.auth.onAuthStateChange((_event, session) => {
+          setUser(session?.user || null);
+        });
 
-      return () => listener.subscription.unsubscribe();
+        return () => listener.subscription.unsubscribe();
+      } catch (err) {
+        console.error("❌ User load error:", err);
+      }
     };
-
     loadUser();
   }, []);
 
-  const categories = [
-    { name: "Textbooks", icon: "BookOpen", desc: "Reference & educational books", count: "500+ listings" },
-    { name: "Electronics", icon: "Laptop", desc: "Phones, laptops, gadgets", count: "3,200+ listings" },
-    { name: "Furniture", icon: "Sofa", desc: "Tables, chairs, home essentials", count: "1,100+ listings" },
-    { name: "Clothing", icon: "Shirt", desc: "Apparel for all styles", count: "2,800+ listings" },
-    { name: "Sports", icon: "Dumbbell", desc: "Sportswear & equipment", count: "900+ listings" },
-  ];
+  // Fetch latest products
+  useEffect(() => {
+    const loadLatestProducts = async () => {
+      setLoadingProducts(true);
+      const products = await fetchAllProducts(10); // Fetch 10 latest products
+      setLatestProducts(products);
+      setLoadingProducts(false);
+    };
+    loadLatestProducts();
+  }, []);
 
-  const steps = [
-    { title: "Explore Listings", desc: "Browse thousands of items across multiple categories.", icon: "Search" },
-    { title: "Chat Safely", desc: "Message sellers securely inside the platform.", icon: "MessageCircle" },
-    { title: "Easy Transactions", desc: "Agree on price, payment, and pickup with confidence.", icon: "CreditCard" },
-    { title: "Meet & Exchange", desc: "Complete the deal at your preferred safe location.", icon: "Handshake" },
+  const categories = [
+    { name: "Textbooks", icon: "BookOpen" },
+    { name: "Electronics", icon: "Laptop" },
+    { name: "Furniture", icon: "Sofa" },
+    { name: "Clothing", icon: "Shirt" },
+    { name: "Sports", icon: "Dumbbell" },
+     ];
+
+  const promoBanners = [
+    { title: "Big Savings", desc: "Up to 70% off pre-owned items" },
+    { title: "Trusted Sellers", desc: "Verified local marketplace" },
+    { title: "Fast Deals", desc: "Chat & close deals quickly" },
   ];
 
   return (
-    <main className="font-inter bg-gray-900 text-white relative overflow-hidden">
-      <Header logoOnly={true} dark />
+    <main className="min-h-screen bg-gray-900 text-white">
+      <Header />
 
-      {/* HERO SECTION */}
-      <section className="pt-28 pb-32 relative overflow-hidden bg-gradient-to-br from-gray-800 via-gray-900 to-black">
-        {/* Floating gradients */}
-        <div className="absolute -top-20 -left-20 w-72 h-72 bg-green-600 rounded-full blur-3xl opacity-30 animate-float1"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-500 rounded-full blur-3xl opacity-20 animate-float2"></div>
-
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center relative">
-          {/* LEFT TEXT */}
-          <div>
-            <span className="text-xs font-medium text-green-400 bg-green-900/30 px-3 py-1 rounded-full shadow-sm">
-              Second-Hand Marketplace
-            </span>
-
-            <h1 className="text-5xl lg:text-6xl font-bold mt-6 leading-tight">
-              Buy Smart. Sell Fast.
-              <br />
-              <span className="text-green-400">Your Local Marketplace.</span>
+      {/* ================= HERO SECTION ================= */}
+      <section className="bg-black text-white">
+        <div className="max-w-7xl mx-auto px-6 py-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+          {/* Left */}
+          <div className="flex-1">
+            <h1 className="text-3xl md:text-5xl font-bold">
+              Buy & Sell Second-Hand Items Easily
             </h1>
-
-            <p className="text-gray-300 mt-6 max-w-md leading-relaxed">
-              Find great deals on electronics, furniture, clothing, books, and more — all from trusted local sellers.
-              <span className="text-white font-medium"> Reduce waste and save money with pre-owned items.</span>
+            <p className="text-gray-400 mt-4 max-w-lg">
+              Discover affordable products from trusted local sellers in your community.
             </p>
 
-            <div className="flex gap-4 mt-8">
+            <div className="mt-6 flex gap-4 flex-wrap items-center">
               <Link
                 href="/browse"
-                className="px-7 py-3 bg-green-500 text-black rounded-xl font-medium hover:bg-green-600 shadow-md transition"
+                className="px-6 py-3 bg-green-500 hover:bg-green-600 text-black font-semibold rounded-lg transition"
               >
                 Browse Items
               </Link>
 
-              <Link
-                href="/sell"
-                className="px-7 py-3 border border-gray-600 rounded-xl font-medium hover:bg-white/5 shadow-sm transition"
-              >
-                Sell an Item
-              </Link>
+              {user && (
+                <Link
+                  href="/seller"
+                  className="px-6 py-3 border border-green-500 text-green-500 hover:bg-green-600 hover:text-white rounded-lg transition"
+                >
+                  Sell an Item
+                </Link>
+              )}
             </div>
 
             <div className="flex gap-12 mt-14">
-              {[["12,000+", "Active Users"], ["₱350", "Avg. Savings"], ["4.9 / 5", "User Rating"]].map(([num, label]) => (
+              {[
+                ["12,000+", "Active Users"],
+                ["₱350", "Avg. Savings"],
+                ["4.9 / 5", "User Rating"]
+              ].map(([num, label]) => (
                 <div key={num}>
                   <p className="text-3xl font-bold text-green-400">{num}</p>
                   <p className="text-gray-400 text-sm">{label}</p>
@@ -98,10 +108,10 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* RIGHT FLOATING CARDS */}
-          <div className="relative h-[420px] flex items-center justify-center">
+          {/* Right */}
+          <div className="relative h-[380px] flex items-center justify-center flex-1 mt-6">
             <div
-              className="w-full h-72 rounded-3xl shadow-inner border border-gray-700 relative overflow-hidden"
+              className="w-full h-64 rounded-3xl shadow-inner border border-gray-700 relative overflow-hidden"
               style={{
                 backgroundImage: "url('/images/flat.jpg')",
                 backgroundSize: "cover",
@@ -112,7 +122,7 @@ export default function Landing() {
             </div>
 
             <div
-              className="absolute -top-4 -left-8 w-56 h-40 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform rotate-[-5deg]"
+              className="absolute -top-2 -left-6 w-48 h-32 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform rotate-[-5deg]"
               style={{
                 backgroundImage: "url('/images/wireless.jpg')",
                 backgroundSize: "cover",
@@ -130,7 +140,7 @@ export default function Landing() {
             </div>
 
             <div
-              className="absolute -bottom-4 -right-8 w-60 h-40 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform rotate-[5deg]"
+              className="absolute -bottom-3 -right-6 w-52 h-32 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden transform rotate-[5deg]"
               style={{
                 backgroundImage: "url('/images/chair.png')",
                 backgroundSize: "cover",
@@ -150,78 +160,90 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CATEGORIES WITH GLASS EFFECT */}
-      <section className="py-24 relative overflow-hidden bg-gray-900">
-        <div className="absolute -top-32 -left-32 w-80 h-80 bg-green-500 rounded-full blur-3xl opacity-20 animate-float1"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-green-600 rounded-full blur-3xl opacity-15 animate-float2"></div>
-
-        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
-          <h2 className="text-3xl font-bold text-white">Shop by Category</h2>
-          <p className="text-gray-400 mt-3 max-w-2xl mx-auto">
-            Find the perfect deal across a wide range of categories.
-          </p>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 mt-12">
-            {categories.map((cat) => (
-              <div
-                key={cat.name}
-                className="bg-white/5 backdrop-blur-md border border-gray-700 rounded-2xl p-5 hover:shadow-xl transition flex flex-col items-center group"
-              >
-                <RenderIcon
-                  name={cat.icon}
-                  className="w-8 h-8 text-green-400 mb-3 group-hover:scale-110 transition"
-                />
-                <p className="font-semibold text-sm text-white">{cat.name}</p>
-                <p className="text-gray-300 text-xs">{cat.desc}</p>
-                <span className="text-gray-500 text-xs mt-1">{cat.count}</span>
+      {/* ================= CATEGORY GRID ================= */}
+      <section className="bg-gray-900 text-white border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-6">
+          {categories.map((cat) => (
+            <Link
+              key={cat.name}
+              href={`/browse?category=${encodeURIComponent(cat.name)}`}
+              className="flex flex-col items-center text-xs gap-2 hover:text-green-400 transition"
+            >
+              <div className="w-14 h-14 bg-gray-800 rounded-xl flex items-center justify-center">
+                <RenderIcon name={cat.icon} className="w-6 h-6 text-green-500" />
               </div>
-            ))}
-          </div>
+              <span className="text-center font-medium">{cat.name}</span>
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* HOW IT WORKS WITH GLASS EFFECT */}
-      <section className="py-24 relative overflow-hidden bg-gray-900">
-        <div className="absolute -bottom-40 -right-32 w-80 h-80 bg-green-500 rounded-full blur-3xl opacity-20 animate-float1"></div>
-        <div className="absolute top-0 -left-32 w-96 h-96 bg-green-600 rounded-full blur-3xl opacity-15 animate-float2"></div>
-
-        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
-          <h2 className="text-3xl font-bold text-white">How It Works</h2>
-          <p className="text-gray-400 mt-3">Simple, safe, and convenient.</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-12">
-            {steps.map((step, index) => (
-              <div
-                key={step.title}
-                className="bg-white/5 backdrop-blur-md rounded-2xl shadow-lg p-8 hover:shadow-xl transition relative border border-gray-700"
-              >
-                <span className="absolute top-3 right-4 bg-green-400 text-black rounded-full text-xs px-2 py-1 shadow">
-                  {index + 1}
-                </span>
-
-                <RenderIcon
-                  name={step.icon}
-                  className="w-10 h-10 text-green-400 mx-auto mb-4"
-                />
-
-                <h3 className="font-bold mb-2 text-white">{step.title}</h3>
-                <p className="text-gray-300 text-sm">{step.desc}</p>
-              </div>
-            ))}
+      {/* ================= PROMO BANNERS ================= */}
+      <section className="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-6">
+        {promoBanners.map(({ title, desc }) => (
+          <div
+            key={title}
+            className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-white shadow-md hover:shadow-lg transition"
+          >
+            <h3 className="font-bold text-lg">{title}</h3>
+            <p className="text-gray-300 mt-2">{desc}</p>
           </div>
-        </div>
+        ))}
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-black text-green-400 py-14 mt-10">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-10">
-          <FooterColumn title="Marketplace" links={["Browse Items", "Sell an Item", "Categories"]} />
-          <FooterColumn title="Support" links={["Help Center", "Contact Us", "Report an Issue"]} />
-          <FooterColumn title="Account" links={["Sign Up", "Sign In"]} />
-          <FooterColumn title="About" links={["About Us", "Careers", "Community Guidelines"]} />
+     {/* ================= LATEST PRODUCTS ================= */}
+<section className="max-w-7xl mx-auto px-6 py-12">
+  <div className="flex justify-between items-center mb-6">
+    <h2 className="text-xl font-bold">Latest Products</h2>
+    <Link href="/browse" className="text-green-500 font-medium hover:underline">
+      View More →
+    </Link>
+  </div>
+
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+    {loadingProducts
+      ? [...Array(10)].map((_, i) => (
+          <div
+            key={i}
+            className="bg-gray-800 rounded-lg border border-gray-700 p-4 animate-pulse"
+          >
+            <div className="bg-gray-700 h-32 rounded mb-3"></div>
+            <div className="h-3 bg-gray-700 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+          </div>
+        ))
+      : latestProducts.map((product) => (
+          <Link
+            key={product.id}
+            href={`/view-product/${product.id}`} // <-- updated path
+            className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:shadow-lg transition"
+          >
+            {product.image && (
+              <img
+                src={product.image}
+                alt={product.title}
+                className="w-full h-32 object-cover"
+              />
+            )}
+            <div className="p-2">
+              <p className="text-sm font-semibold text-white">{product.title}</p>
+              <p className="text-green-400 font-bold">₱{product.price}</p>
+            </div>
+          </Link>
+        ))}
+  </div>
+</section>
+
+      {/* ================= FOOTER ================= */}
+      <footer className="bg-black text-gray-400">
+        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <FooterColumn title="Marketplace" links={["Browse", "Sell", "Categories"]} />
+          <FooterColumn title="Support" links={["Help Center", "Contact"]} />
+          <FooterColumn title="Account" links={["Sign In", "Register"]} />
+          <FooterColumn title="Company" links={["About", "Guidelines"]} />
         </div>
 
-        <p className="text-center text-green-300 mt-10 text-sm">
+        <p className="text-center text-xs text-gray-500 pb-6">
           © {new Date().getFullYear()} ReMart. All rights reserved.
         </p>
       </footer>
@@ -229,14 +251,15 @@ export default function Landing() {
   );
 }
 
+// -------------------- Footer Column --------------------
 function FooterColumn({ title, links }) {
   return (
     <div>
-      <h4 className="font-semibold text-green-400 mb-3">{title}</h4>
+      <h4 className="font-semibold text-white mb-3">{title}</h4>
       <ul className="space-y-2">
         {links.map((l) => (
           <li key={l}>
-            <a className="hover:text-white transition cursor-pointer">{l}</a>
+            <a className="hover:text-green-500 transition cursor-pointer">{l}</a>
           </li>
         ))}
       </ul>
