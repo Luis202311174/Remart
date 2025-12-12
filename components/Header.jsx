@@ -16,7 +16,6 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function Header({ logoOnly = false, hideSearch = false }) {
   const router = useRouter();
-
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
@@ -69,16 +68,13 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
     checkSeller();
   }, [user]);
 
-  // Logout function
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
 
-  // Become seller function
   const handleBecomeSeller = async () => {
     if (!user) return router.push("/login");
-
     setLoading(true);
     try {
       const { data: existing } = await supabase
@@ -86,7 +82,6 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
         .select("id")
         .eq("auth_id", user.id)
         .maybeSingle();
-
       if (!existing) await supabase.from("seller").insert([{ auth_id: user.id }]);
       setIsSeller(true);
       router.push("/seller");
@@ -96,109 +91,213 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
     }
   };
 
-  // Handle search submit
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
+    if (searchQuery.trim()) router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   return (
     <>
-      {/* Header */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-black border-b border-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-5 h-20 flex items-center justify-between">
+     <header className="fixed top-0 left-0 w-full z-50 bg-[#E1D9C8] border-b border-[#CFC6B3] shadow-md backdrop-blur-sm">
+  <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    {/* Logo */}
+    <Link href="/" className="text-3xl font-extrabold flex items-center">
+      <span className="text-[#2F8F4E]">Re</span>
+      <span className="text-black">Mart</span>
+    </Link>
 
-          {/* Logo */}
-          {/* Logo always goes to index */}
-<Link
-  href="/"
-  className="text-3xl font-extrabold tracking-tight flex items-center"
->
-  <span className="text-green-400">Re</span>
-  <span className="text-white">Mart</span>
-</Link>
+    {/* Desktop Search + Buttons */}
+    {!logoOnly && (
+      <div className="hidden md:flex flex-1 items-center justify-center gap-6">
+        {!hideSearch && (
+          <form
+            onSubmit={handleSearch}
+            className="flex w-full max-w-md bg-white/90 rounded-full shadow border border-[#D0C9B5] overflow-hidden backdrop-blur-sm"
+          >
+            <input
+              type="text"
+              placeholder="Search items..."
+              className="flex-1 px-4 py-2 text-sm focus:outline-none bg-transparent"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="px-5 bg-[#2F8F4E] text-white hover:bg-[#1E5631] transition">
+              <FontAwesomeIcon icon={faMagnifyingGlass} />
+            </button>
+          </form>
+        )}
 
-          {/* Desktop Buttons / Search */}
-          {logoOnly ? (
-            <DesktopLogoOnly user={user} profile={profile} />
-          ) : (
+        <div className="flex items-center gap-4">
+          {user ? (
             <>
-              {!hideSearch && (
-                <div className="hidden md:flex flex-1 justify-center px-6">
-                  <form onSubmit={handleSearch} className="flex w-full max-w-md bg-gray-900 rounded-full shadow-sm border border-gray-700 overflow-hidden">
-                    <input
-                      type="text"
-                      placeholder="Search items..."
-                      className="flex-1 px-4 py-2 text-sm bg-gray-900 text-white focus:outline-none"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <button className="px-5 bg-green-400 text-black text-sm font-medium hover:bg-green-500 transition">
-                      <FontAwesomeIcon icon={faMagnifyingGlass} />
-                    </button>
-                  </form>
-                </div>
+              <Link
+                href="/cart"
+                className="px-4 py-2 bg-[#2F8F4E] text-white rounded-full hover:bg-[#1E5631] transition flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faCartShopping} /> Cart
+              </Link>
+
+              {isSeller ? (
+                <Link
+                  href="/seller"
+                  className="px-4 py-2 bg-[#2F8F4E] text-white rounded-full hover:bg-[#1E5631] transition"
+                >
+                  + Sell
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setShowSellerModal(true)}
+                  className="px-4 py-2 bg-[#2F8F4E] text-white rounded-full hover:bg-[#1E5631] transition"
+                >
+                  + Sell
+                </button>
               )}
 
-              <DesktopUserButtons
-                user={user}
-                profile={profile}
-                isSeller={isSeller}
-                setShowSellerModal={setShowSellerModal}
-                dropdownOpen={dropdownOpen}
-                setDropdownOpen={setDropdownOpen}
-                handleLogout={handleLogout}
-              />
+              {/* User Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="px-4 py-2 bg-white/90 border border-[#D0C9B5] rounded-full flex items-center gap-2 hover:bg-white/95 transition backdrop-blur-sm"
+                >
+                  <FontAwesomeIcon icon={faUser} />
+                  {profile ? `${profile.fname} ${profile.lname}` : user.email.split("@")[0]}
+                  <FontAwesomeIcon
+                    icon={faChevronDown}
+                    className={`${dropdownOpen ? "rotate-180" : ""} transition`}
+                  />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white/95 border border-[#D0C9B5] rounded-xl shadow-lg p-2 text-black backdrop-blur-sm">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100/80"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-4 py-2 font-medium hover:text-[#2F8F4E] transition"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 bg-[#2F8F4E] text-white font-medium rounded-lg hover:bg-[#1E5631] transition"
+              >
+                Sign Up
+              </Link>
             </>
           )}
+        </div>
+      </div>
+    )}
 
-          {/* Mobile Menu Button */}
-          {!logoOnly && (
-            <button
-              className="md:hidden p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+    {/* Mobile Menu Button */}
+    {!logoOnly && (
+      <button
+        className="md:hidden p-2 rounded-full bg-white/90 border border-[#D0C9B5] text-black hover:bg-white/95 backdrop-blur-sm"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+      >
+        <FontAwesomeIcon icon={mobileMenuOpen ? faX : faBars} />
+      </button>
+    )}
+  </div>
+
+  {/* Mobile Menu */}
+  {!logoOnly && mobileMenuOpen && (
+    <div className="md:hidden bg-[#E1D9C8] border-t border-[#CFC6B3] shadow-xl p-4 space-y-3 text-black">
+      <form
+        onSubmit={handleSearch}
+        className="flex w-full border border-[#D0C9B5] rounded-full overflow-hidden"
+      >
+        <input
+          type="text"
+          placeholder="Search items..."
+          className="flex-1 px-4 py-2 text-sm focus:outline-none bg-transparent"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <button className="px-4 bg-[#2F8F4E] text-white">
+          <FontAwesomeIcon icon={faMagnifyingGlass} />
+        </button>
+      </form>
+
+      {user ? (
+        <div className="space-y-2">
+          <Link
+            href="/cart"
+            className="block px-4 py-2 bg-[#2F8F4E] text-white rounded-lg hover:bg-[#1E5631]"
+          >
+            Cart
+          </Link>
+          {isSeller ? (
+            <Link
+              href="/seller"
+              className="block px-4 py-2 bg-[#2F8F4E] text-white rounded-lg hover:bg-[#1E5631]"
             >
-              <FontAwesomeIcon icon={mobileMenuOpen ? faX : faBars} />
+              + Sell
+            </Link>
+          ) : (
+            <button
+              onClick={() => setShowSellerModal(true)}
+              className="block w-full px-4 py-2 bg-[#2F8F4E] text-white rounded-lg hover:bg-[#1E5631]"
+            >
+              + Sell
             </button>
           )}
+          <button
+            onClick={handleLogout}
+            className="block w-full px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+          >
+            Logout
+          </button>
         </div>
+      ) : (
+        <div className="space-y-2">
+          <Link
+            href="/login"
+            className="block px-4 py-2 rounded-lg hover:bg-gray-200"
+          >
+            Login
+          </Link>
+          <Link
+            href="/signup"
+            className="block px-4 py-2 rounded-lg hover:bg-gray-200"
+          >
+            Sign Up
+          </Link>
+        </div>
+      )}
+    </div>
+  )}
+</header>
 
-        {/* Mobile Menu */}
-        {!logoOnly && mobileMenuOpen && (
-          <MobileMenu
-            user={user}
-            isSeller={isSeller}
-            showSellerModal={showSellerModal}
-            setShowSellerModal={setShowSellerModal}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            handleSearch={handleSearch}
-            handleLogout={handleLogout}
-          />
-        )}
-      </header>
 
       {/* Become Seller Modal */}
       {showSellerModal && !isSeller && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 p-6 rounded-xl shadow-xl w-full max-w-md text-center text-white">
-            <h2 className="text-2xl font-bold mb-2">Become a Seller</h2>
-            <p className="text-gray-300 mb-5">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md text-center">
+            <h2 className="text-2xl font-bold mb-2 text-[#2F8F4E]">Become a Seller</h2>
+            <p className="text-gray-600 mb-5">
               Agree to our seller terms and conditions to start selling.
             </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={handleBecomeSeller}
                 disabled={loading}
-                className="px-4 py-2 bg-green-400 text-black rounded-lg hover:bg-green-500"
+                className="px-4 py-2 bg-[#2F8F4E] text-white rounded-lg hover:bg-[#1E5631]"
               >
                 {loading ? "Processing..." : "Yes, Continue"}
               </button>
               <button
                 onClick={() => setShowSellerModal(false)}
-                className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
               >
                 Cancel
               </button>
@@ -207,160 +306,5 @@ export default function Header({ logoOnly = false, hideSearch = false }) {
         </div>
       )}
     </>
-  );
-}
-
-// -------------------- Desktop Logo Only --------------------
-function DesktopLogoOnly({ user, profile }) {
-  return (
-    <div className="hidden md:flex items-center gap-4">
-      {user ? (
-        <span className="text-gray-300 font-medium">
-          {profile ? `${profile.fname} ${profile.lname}` : user.email.split("@")[0]}
-        </span>
-      ) : (
-        <>
-          <Link className="text-green-400 hover:text-green-500 font-medium" href="/login">
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 rounded-lg bg-green-400 text-black font-medium hover:bg-green-500 shadow-sm transition"
-          >
-            Sign Up
-          </Link>
-        </>
-      )}
-    </div>
-  );
-}
-
-// -------------------- Desktop User Buttons --------------------
-function DesktopUserButtons({ user, profile, isSeller, setShowSellerModal, dropdownOpen, setDropdownOpen, handleLogout }) {
-  return (
-    <div className="hidden md:flex items-center gap-4">
-      {user ? (
-        <>
-          <Link
-            href="/cart"
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm flex items-center gap-2 transition text-white"
-          >
-            <FontAwesomeIcon icon={faCartShopping} />
-            Cart
-          </Link>
-
-          {isSeller ? (
-            <Link
-              href="/seller"
-              className="px-4 py-2 bg-green-400 text-black text-sm rounded-full hover:bg-green-500 transition"
-            >
-              + Sell
-            </Link>
-          ) : (
-            <button
-              onClick={() => setShowSellerModal(true)}
-              className="px-4 py-2 bg-green-400 text-black text-sm rounded-full hover:bg-green-500 transition"
-            >
-              + Sell
-            </button>
-          )}
-
-          {/* User Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="px-4 py-2 bg-gray-800 text-white rounded-full text-sm flex items-center gap-2 hover:bg-gray-700 transition"
-            >
-              <FontAwesomeIcon icon={faUser} />
-              {profile ? `${profile.fname} ${profile.lname}` : user.email.split("@")[0]}
-              <FontAwesomeIcon
-                icon={faChevronDown}
-                className={`${dropdownOpen ? "rotate-180" : ""} transition`}
-              />
-            </button>
-
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-2 text-white">
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-800"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          <Link className="text-sm text-white hover:text-green-400" href="/login">
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 bg-gray-800 text-white rounded-full text-sm hover:bg-gray-700"
-          >
-            Sign Up
-          </Link>
-        </>
-      )}
-    </div>
-  );
-}
-
-// -------------------- Mobile Menu --------------------
-function MobileMenu({ user, isSeller, showSellerModal, setShowSellerModal, searchQuery, setSearchQuery, handleSearch, handleLogout }) {
-  return (
-    <div className="md:hidden bg-gray-900 border-t border-gray-700 shadow-xl p-4 space-y-3 text-white">
-      <form onSubmit={handleSearch} className="flex w-full bg-gray-800 border border-gray-700 rounded-full overflow-hidden">
-        <input
-          type="text"
-          placeholder="Search..."
-          className="flex-1 px-4 py-2 text-sm bg-gray-800 text-white focus:outline-none"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button className="px-4 bg-green-400 text-black text-sm">
-          <FontAwesomeIcon icon={faMagnifyingGlass} />
-        </button>
-      </form>
-
-      {user ? (
-        <div className="space-y-2">
-          <Link href="/cart" className="block bg-gray-800 px-4 py-2 rounded-lg text-white hover:bg-gray-700">
-            Cart
-          </Link>
-
-          {isSeller ? (
-            <Link href="/seller" className="block bg-green-400 text-black px-4 py-2 rounded-lg hover:bg-green-500">
-              + Sell
-            </Link>
-          ) : (
-            <button
-              onClick={() => setShowSellerModal(true)}
-              className="block w-full bg-green-400 text-black px-4 py-2 rounded-lg hover:bg-green-500"
-            >
-              + Sell
-            </button>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="block w-full bg-gray-700 px-4 py-2 rounded-lg hover:bg-gray-600"
-          >
-            Logout
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Link href="/login" className="block bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-700">
-            Login
-          </Link>
-          <Link href="/signup" className="block bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-700">
-            Sign Up
-          </Link>
-        </div>
-      )}
-    </div>
   );
 }

@@ -125,128 +125,125 @@ export default function Browse({ items = [], user }) {
 
   /* --------------------------------- UI ----------------------------------- */
   return (
-    <main className="font-inter min-h-screen flex flex-col bg-[#0f1623] text-white">
+    <main className="font-inter min-h-screen flex flex-col bg-[#F2F5F3] text-[#1E5631]">
 
       {/* ----------------------------- HEADER ----------------------------- */}
       <Header user={user} />
 
       {/* ----------------------------- TITLE ------------------------------ */}
       <div className="w-full mt-[90px] text-center px-6">
-        <h1 className="text-4xl font-bold">Browse Items</h1>
-        <p className="text-gray-300 mt-2 max-w-2xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-extrabold">Browse Items</h1>
+        <p className="text-gray-600 mt-2 max-w-2xl mx-auto text-lg">
           Discover a variety of second-hand items—electronics, clothing, books, and more—posted by people near you.
         </p>
       </div>
 
       {/* --------------------------- MAIN CONTENT ------------------------- */}
-    <div className="max-w-[1700px] mx-auto flex gap-12 mt-12 px-12 pb-20">
+      <div className="max-w-7xl mx-auto flex gap-8 mt-12 pb-20">
 
-  {/* --------------------------- LEFT SIDEBAR --------------------------- */}
-  <aside className="hidden lg:block w-72 flex-shrink-0">
-    <div className="bg-[#0f1623] border border-gray-700 rounded-xl p-6 sticky top-32 shadow-md">
+        {/* --------------------------- LEFT SIDEBAR --------------------------- */}
+        <aside className="hidden lg:block w-72 flex-shrink-0">
+          <div className="bg-white border border-[#DDE2D8] rounded-xl p-6 sticky top-32 shadow-lg">
 
-      <h2 className="text-xl font-bold mb-4">Filters ({items.length})</h2>
+            <h2 className="text-xl font-bold mb-4">Filters ({items.length})</h2>
 
-      {/* CATEGORY */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold mb-2">Category</h3>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full bg-[#0e1420] border border-gray-700 rounded p-2"
-        >
-          <option value="all">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat.cat_id} value={cat.cat_id}>
-              {cat.cat_name}
-            </option>
-          ))}
-        </select>
-      </div>
+            {/* CATEGORY */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold mb-2">Category</h3>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-[#F2F5F3] border border-[#DDE2D8] rounded p-2"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.cat_id} value={cat.cat_id}>
+                    {cat.cat_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      {/* CONDITION */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold mb-2">Condition</h3>
-        <select
-          value={condition}
-          onChange={(e) => setCondition(e.target.value)}
-          className="w-full bg-[#0e1420] border border-gray-700 rounded p-2"
-        >
-          <option value="all">All Conditions</option>
-          <option value="new">New</option>
-          <option value="used">Used</option>
-        </select>
-      </div>
+            {/* CONDITION */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold mb-2">Condition</h3>
+              <select
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+                className="w-full bg-[#F2F5F3] border border-[#DDE2D8] rounded p-2"
+              >
+                <option value="all">All Conditions</option>
+                <option value="new">New</option>
+                <option value="used">Used</option>
+              </select>
+            </div>
 
-      {/* PRICE */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold mb-2">Price</h3>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            placeholder="Min Price"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            className="w-1/2 bg-[#0e1420] border border-gray-700 rounded p-2"
-          />
-          <input
-            type="number"
-            placeholder="Max Price"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            className="w-1/2 bg-[#0e1420] border border-gray-700 rounded p-2"
-          />
-        </div>
-      </div>
+            {/* PRICE */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold mb-2">Price</h3>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min Price"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="w-1/2 bg-[#F2F5F3] border border-[#DDE2D8] rounded p-2"
+                />
+                <input
+                  type="number"
+                  placeholder="Max Price"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="w-1/2 bg-[#F2F5F3] border border-[#DDE2D8] rounded p-2"
+                />
+              </div>
+            </div>
 
-      {/* SORT */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold mb-2">Sort By</h3>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="w-full bg-[#0e1420] border border-gray-700 rounded p-2"
-        >
-          <option value="newest">Newest</option>
-          <option value="price_low">Price: Low to High</option>
-          <option value="price_high">Price: High to Low</option>
-        </select>
-      </div>
+            {/* SORT */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold mb-2">Sort By</h3>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="w-full bg-[#F2F5F3] border border-[#DDE2D8] rounded p-2"
+              >
+                <option value="newest">Newest</option>
+                <option value="price_low">Price: Low to High</option>
+                <option value="price_high">Price: High to Low</option>
+              </select>
+            </div>
 
-      {/* APPLY BUTTON */}
-      <button
-        onClick={handleApplyFilters}
-        className="w-full bg-green-600 hover:bg-green-500 mt-4 py-2 rounded font-semibold"
-      >
-        Apply Filters
-      </button>
-    </div>
-  </aside>
-
-  {/* ----------------------------- PRODUCTS GRID ----------------------------- */}
-  <section className="flex-1">
-    {items.length > 0 ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="bg-[#0e1420] p-2 rounded-xl border border-gray-700 hover:border-gray-500 transition"
-          >
-            <ItemCard item={item} darkTheme />
+            {/* APPLY BUTTON */}
+            <button
+              onClick={handleApplyFilters}
+              className="w-full bg-green-600 hover:bg-green-500 mt-4 py-2 rounded-xl font-semibold text-white transition"
+            >
+              Apply Filters
+            </button>
           </div>
-        ))}
+        </aside>
+
+        {/* ----------------------------- PRODUCTS GRID ----------------------------- */}
+        <section className="flex-1 flex justify-center">
+          {items.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 w-full">
+              {items.map((item) => (
+                <div key={item.id} className="p-2">
+                  <ItemCard item={item} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-32 w-full">
+              <p className="text-2xl font-semibold text-gray-600">No items found</p>
+              <p className="text-gray-400 mt-2">Try adjusting the filters.</p>
+            </div>
+          )}
+        </section>
       </div>
-    ) : (
-      <div className="text-center py-32">
-        <p className="text-2xl font-semibold text-gray-300">No items found</p>
-        <p className="text-gray-500 mt-2">Try adjusting the filters.</p>
-      </div>
-    )}
-  </section>
-</div>
 
       {/* ----------------------------- FOOTER ----------------------------- */}
-      <footer className="text-center text-gray-500 py-10 border-t border-gray-700 mt-10">
+      <footer className="text-center text-gray-500 py-10 border-t border-[#DDE2D8] mt-10">
         © {new Date().getFullYear()} CampusMart — All rights reserved.
       </footer>
 
