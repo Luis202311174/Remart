@@ -5,7 +5,6 @@ import { PlusCircle, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 
-// Dynamic Leaflet imports (SSR disabled)
 const LeafletMapWithDraw = dynamic(() => import("@/components/LeafletMap"), { ssr: false });
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
@@ -39,14 +38,12 @@ export default function AddProduct() {
     radius: 300,
   });
 
-  // Auto-hide success message
   useEffect(() => {
     if (!successMsg) return;
     const timer = setTimeout(() => setSuccessMsg(""), 3000);
     return () => clearTimeout(timer);
   }, [successMsg]);
 
-  // Get user's geolocation
   useEffect(() => {
     if (!navigator?.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -56,7 +53,6 @@ export default function AddProduct() {
     );
   }, []);
 
-  // Load seller + categories
   useEffect(() => {
     async function load() {
       try {
@@ -95,7 +91,6 @@ export default function AddProduct() {
     }
   };
 
-  // Auto-fit preview map to circle
   useEffect(() => {
     if (mapPreviewRef.current && form.lat && form.lng) {
       const radiusInMeters = form.radius || 50;
@@ -119,7 +114,6 @@ export default function AddProduct() {
     if (form.lat === null || form.lng === null) return alert("Pick a location on the map");
 
     setLoading(true);
-
     try {
       const { data: productData, error: productError } = await supabase
         .from("products")
@@ -142,7 +136,6 @@ export default function AddProduct() {
       if (productError) throw productError;
       const product_id = productData.product_id;
 
-      // Upload images
       for (const img of form.images) {
         const fileName = `${Date.now()}_${img.name.replace(/\s+/g, "_")}`;
         const { data: file, error: uploadErr } = await supabase.storage
@@ -181,23 +174,23 @@ export default function AddProduct() {
   };
 
   return (
-    <div className="flex-1 bg-gray-900 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-lg p-8 sm:p-10">
-        <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-green-400">
+    <div className="flex-1 bg-[#FAFAF8] min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 sm:p-10">
+        <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-[#2F8F4E]">
           <PlusCircle className="w-7 h-7" />
           Add New Product
         </h2>
 
         {successMsg && (
           <div
-            className="fixed top-6 right-6 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg animate-fade-in flex items-center gap-2"
+            className="fixed top-6 right-6 z-50 bg-[#2F8F4E] text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-fade-in"
             role="alert"
           >
             {successMsg}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 text-gray-200">
+        <form onSubmit={handleSubmit} className="space-y-6 text-gray-700">
           {/* Category */}
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
@@ -205,7 +198,7 @@ export default function AddProduct() {
               name="cat_id"
               value={form.cat_id}
               onChange={handleChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+              className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
             >
               <option value="">Select Category</option>
               {categories.map((c) => (
@@ -223,7 +216,7 @@ export default function AddProduct() {
               name="title"
               value={form.title}
               onChange={handleChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+              className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
             />
           </div>
 
@@ -235,7 +228,7 @@ export default function AddProduct() {
               value={form.description}
               onChange={handleChange}
               rows="4"
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+              className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
             />
           </div>
 
@@ -248,7 +241,7 @@ export default function AddProduct() {
                 name="price"
                 value={form.price}
                 onChange={handleChange}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+                className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
               />
             </div>
             <div>
@@ -258,7 +251,7 @@ export default function AddProduct() {
                 name="original_price"
                 value={form.original_price}
                 onChange={handleChange}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+                className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
               />
             </div>
           </div>
@@ -270,7 +263,7 @@ export default function AddProduct() {
               name="condition"
               value={form.condition}
               onChange={handleChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+              className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
             >
               <option>New</option>
               <option>Like New</option>
@@ -283,7 +276,7 @@ export default function AddProduct() {
           <div>
             <label className="block text-sm font-medium mb-2">Pickup Location</label>
             <div
-              className="w-full h-56 border border-gray-600 rounded-lg overflow-hidden cursor-pointer relative hover:shadow-lg transition"
+              className="w-full h-56 border border-gray-300 rounded-lg overflow-hidden cursor-pointer relative hover:shadow-lg transition"
               onClick={() => setShowMapModal(true)}
             >
               {!showMapModal && (
@@ -299,13 +292,13 @@ export default function AddProduct() {
                     <Circle
                       center={[form.lat, form.lng]}
                       radius={form.radius}
-                      pathOptions={{ color: "#10B981", fillColor: "#34D399", fillOpacity: 0.3 }}
+                      pathOptions={{ color: "#2F8F4E", fillColor: "#A7F3D0", fillOpacity: 0.3 }}
                     />
                   )}
                 </MapContainer>
               )}
               {form.lat && form.lng && !showMapModal && (
-                <div className="absolute top-2 left-2 text-sm text-gray-900 bg-green-400 px-2 py-1 rounded shadow-sm">
+                <div className="absolute top-2 left-2 text-sm text-gray-900 bg-green-200 px-2 py-1 rounded shadow-sm">
                   Lat: {form.lat.toFixed(5)}, Lng: {form.lng.toFixed(5)}
                 </div>
               )}
@@ -315,16 +308,16 @@ export default function AddProduct() {
           {/* Map Modal */}
           {showMapModal && (
             <div
-              className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center p-4"
+              className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center p-4"
               role="dialog"
               aria-modal="true"
             >
-              <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
+              <div className="relative w-full max-w-4xl h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
                 <button
                   onClick={() => setShowMapModal(false)}
-                  className="absolute top-4 right-4 z-[1000] bg-gray-800 shadow-md rounded-full p-2 hover:bg-gray-700 transition border focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="absolute top-4 right-4 z-[1000] bg-white shadow-md rounded-full p-2 hover:bg-gray-100 transition border focus:outline-none focus:ring-2 focus:ring-[#2F8F4E]"
                 >
-                  <X className="w-5 h-5 text-green-400" />
+                  <X className="w-5 h-5 text-[#2F8F4E]" />
                 </button>
 
                 <LeafletMapWithDraw
@@ -348,7 +341,7 @@ export default function AddProduct() {
               accept="image/*"
               multiple
               onChange={handleChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition"
+              className="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#2F8F4E] focus:outline-none transition"
             />
           </div>
 
@@ -356,7 +349,7 @@ export default function AddProduct() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-green-500 text-gray-900 rounded-xl font-semibold shadow hover:bg-green-600 transition disabled:opacity-50"
+            className="w-full py-3 bg-[#2F8F4E] text-white rounded-xl font-semibold shadow hover:bg-[#1E5631] transition disabled:opacity-50"
           >
             {loading ? "Adding..." : "Add Product"}
           </button>

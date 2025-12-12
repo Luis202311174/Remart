@@ -96,14 +96,12 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
     e.preventDefault();
     setLoading(true);
     try {
-      // Delete images
       for (const img of imagesToDelete) {
         if (!img.storage_path || !img.img_id) continue;
         await supabase.storage.from("product-images").remove([img.storage_path]);
         await supabase.from("product_images").delete().eq("img_id", img.img_id);
       }
 
-      // Update product
       await supabase
         .from("products")
         .update({
@@ -115,7 +113,6 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
         })
         .eq("product_id", product.product_id);
 
-      // Upload new images
       for (const file of newImages) {
         const fileName = `${product.product_id}_${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
         const upload = await supabase.storage.from("product-images").upload(fileName, file);
@@ -145,36 +142,36 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 px-4">
-      <div className="bg-gray-900 text-gray-200 rounded-2xl shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white transition"
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-900 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-green-400">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-[#2F8F4E]">
           <Edit2 className="w-5 h-5" /> Edit Product
         </h2>
 
         {/* Images Section */}
         <div className="mb-4">
-          <span className="font-medium text-gray-300">Images</span>
+          <span className="font-medium text-gray-700">Images</span>
           {images.length ? (
             <>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {images.map((img, index) => (
                   <div
                     key={img.img_id || img.temp_id || `img-${index}`}
-                    className="relative border border-gray-700 rounded-md overflow-hidden"
+                    className="relative border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition"
                   >
                     <img src={img.img_path} className="w-full h-24 object-cover" />
                     <input
                       type="checkbox"
                       checked={img.selected || false}
                       onChange={() => toggleSelectImage(img)}
-                      className="absolute top-1 left-1 w-5 h-5 accent-green-400"
+                      className="absolute top-1 left-1 w-5 h-5 accent-[#2F8F4E]"
                     />
                   </div>
                 ))}
@@ -182,7 +179,7 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
               <button
                 type="button"
                 onClick={deleteSelectedImages}
-                className="mt-2 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                className="mt-2 px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
               >
                 Delete Selected
               </button>
@@ -194,14 +191,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
 
         {/* Add new images */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300">Add Images</label>
+          <label className="block text-sm font-medium text-gray-700">Add Images</label>
           <input
             type="file"
             name="newImages"
             multiple
             accept="image/*"
             onChange={handleChange}
-            className="w-full mt-1 border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
+            className="w-full mt-1 border border-gray-300 rounded-lg p-2 bg-white"
           />
         </div>
 
@@ -213,14 +210,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
             placeholder="Title"
             value={form.title}
             onChange={handleChange}
-            className="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
+            className="w-full border border-gray-300 rounded-lg p-2 bg-white"
           />
           <textarea
             name="description"
             placeholder="Description"
             value={form.description}
             onChange={handleChange}
-            className="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
+            className="w-full border border-gray-300 rounded-lg p-2 bg-white"
             rows={3}
           />
           <div className="grid grid-cols-2 gap-3">
@@ -230,7 +227,7 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
               placeholder="Price ₱"
               value={form.price}
               onChange={handleChange}
-              className="border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
+              className="border border-gray-300 rounded-lg p-2 bg-white"
             />
             <input
               type="number"
@@ -238,14 +235,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
               placeholder="Original ₱"
               value={form.original_price}
               onChange={handleChange}
-              className="border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
+              className="border border-gray-300 rounded-lg p-2 bg-white"
             />
           </div>
           <select
             name="condition"
             value={form.condition}
             onChange={handleChange}
-            className="w-full border border-gray-700 rounded-lg p-2 bg-gray-800 text-gray-200"
+            className="w-full border border-gray-300 rounded-lg p-2 bg-white"
           >
             <option>New</option>
             <option>Like New</option>
@@ -257,14 +254,14 @@ export default function EditProductModal({ product, onClose, onUpdated }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-800 transition"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-green-500 text-gray-900 rounded-lg hover:bg-green-600 transition"
+              className="px-4 py-2 bg-[#2F8F4E] text-white rounded-lg hover:bg-[#1E5631] transition"
             >
               {loading ? "Saving..." : "Save Changes"}
             </button>

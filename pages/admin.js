@@ -1,6 +1,4 @@
-// pages/admin.js
 "use client";
-
 import { useEffect, useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 import { useRouter } from "next/navigation";
@@ -58,17 +56,13 @@ export default function AdminPage() {
   };
 
   /* ---------------------------------------------------------
-     FETCH ALL DATA (SAFE - API ROUTE ONLY)
+     FETCH ALL DATA
   --------------------------------------------------------- */
   const fetchAllData = async () => {
     try {
       const res = await fetch("/api/admin/get-all");
       const text = await res.text();
 
-      // Debug: check what was returned
-      console.log("get-all response:", text.slice(0, 200)); // first 200 chars
-
-      // Only parse JSON if it’s valid
       let data;
       try {
         data = JSON.parse(text);
@@ -85,7 +79,7 @@ export default function AdminPage() {
       console.error("Error fetching all data:", e);
       alert("Failed to load admin data. Check console for details.");
     }
-};
+  };
 
   /* ---------------------------------------------------------
      EXPORT HANDLER
@@ -100,13 +94,11 @@ export default function AdminPage() {
 
       const disposition = res.headers.get("content-disposition");
       let filename = `remart_export_${dataset}.${format}`;
-
       if (disposition) {
         const match = disposition.match(/filename="(.+)"/);
         if (match) filename = match[1];
       }
 
-      // DOWNLOAD FILE
       const blob = await res.blob();
       const link = document.createElement("a");
       link.href = window.URL.createObjectURL(blob);
@@ -133,145 +125,94 @@ export default function AdminPage() {
     if (selected === "dashboard") {
       return (
         <div className="p-6">
-          <h2 className="text-2xl font-semibold mb-4">Dashboard</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Dashboard</h2>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="p-4 bg-gray-800 rounded-lg">Users<br /><span className="text-xl font-bold">{counts.users ?? 0}</span></div>
-            <div className="p-4 bg-gray-800 rounded-lg">Sellers<br /><span className="text-xl font-bold">{counts.sellers ?? 0}</span></div>
-            <div className="p-4 bg-gray-800 rounded-lg">Products<br /><span className="text-xl font-bold">{counts.products ?? 0}</span></div>
-            <div className="p-4 bg-gray-800 rounded-lg">Saved (Cart)<br /><span className="text-xl font-bold">{counts.cart ?? 0}</span></div>
+            {[
+              { label: "Users", value: counts.users ?? 0 },
+              { label: "Sellers", value: counts.sellers ?? 0 },
+              { label: "Products", value: counts.products ?? 0 },
+              { label: "Saved (Cart)", value: counts.cart ?? 0 },
+            ].map((stat) => (
+              <div key={stat.label} className="p-4 bg-white rounded-lg shadow">
+                <p className="text-gray-500 text-sm">{stat.label}</p>
+                <p className="text-xl font-bold text-gray-800">{stat.value}</p>
+              </div>
+            ))}
           </div>
 
           {/* Export */}
-          <div className="bg-gray-800 p-4 rounded-lg text-white">
-            <h3 className="font-semibold mb-2">Export data</h3>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="font-semibold mb-2 text-gray-800">Export data</h3>
             <div className="flex gap-3 items-center mb-3">
-              <button onClick={() => handleExport({ format: "csv" })} className="px-3 py-2 rounded bg-gray-700">Export CSV</button>
-              <button onClick={() => handleExport({ format: "pdf" })} className="px-3 py-2 rounded bg-gray-700">Export PDF</button>
+              <button onClick={() => handleExport({ format: "csv" })} className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 transition">
+                Export CSV
+              </button>
+              <button onClick={() => handleExport({ format: "pdf" })} className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200 transition">
+                Export PDF
+              </button>
             </div>
-            <p className="text-sm text-gray-400">Includes users, sellers, products, saved items and chats.</p>
+            <p className="text-sm text-gray-500">Includes users, sellers, products, saved items and chats.</p>
           </div>
         </div>
       );
     }
 
-    /* ---------------------------------------------------------
-       USERS
-    --------------------------------------------------------- */
     if (selected === "users") {
-      return (
-        <SectionTable
-          title="Users"
-          data={users}
-          columns={[
-            { key: "auth_id", label: "Auth ID" },
-            { key: "fname", label: "First" },
-            { key: "lname", label: "Last" },
-            { key: "created_at", label: "Created" },
-          ]}
-          dataset="users"
-          handleExport={handleExport}
-        />
-      );
+      return <SectionTable title="Users" data={users} dataset="users" handleExport={handleExport} columns={[
+        { key: "auth_id", label: "Auth ID" },
+        { key: "fname", label: "First" },
+        { key: "lname", label: "Last" },
+        { key: "created_at", label: "Created" },
+      ]} />;
     }
 
-    /* ---------------------------------------------------------
-       SELLERS
-    --------------------------------------------------------- */
     if (selected === "sellers") {
-      return (
-        <SectionTable
-          title="Sellers"
-          data={sellers}
-          columns={[
-            { key: "id", label: "ID" },
-            { key: "auth_id", label: "Auth ID" },
-            { key: "fname", label: "First" },
-            { key: "lname", label: "Last" },
-          ]}
-          dataset="sellers"
-          handleExport={handleExport}
-        />
-      );
+      return <SectionTable title="Sellers" data={sellers} dataset="sellers" handleExport={handleExport} columns={[
+        { key: "id", label: "ID" },
+        { key: "auth_id", label: "Auth ID" },
+        { key: "fname", label: "First" },
+        { key: "lname", label: "Last" },
+      ]} />;
     }
 
-    /* ---------------------------------------------------------
-       PRODUCTS
-    --------------------------------------------------------- */
     if (selected === "products") {
-      return (
-        <SectionTable
-          title="Products"
-          data={products}
-          columns={[
-            { key: "product_id", label: "ID" },
-            { key: "title", label: "Title" },
-            { key: "price", label: "Price" },
-            { key: "status", label: "Status" },
-            { key: "seller_name", label: "Seller" },
-          ]}
-          dataset="products"
-          handleExport={handleExport}
-        />
-      );
+      return <SectionTable title="Products" data={products} dataset="products" handleExport={handleExport} columns={[
+        { key: "product_id", label: "ID" },
+        { key: "title", label: "Title" },
+        { key: "price", label: "Price" },
+        { key: "status", label: "Status" },
+        { key: "seller_name", label: "Seller" },
+      ]} />;
     }
 
-    /* ---------------------------------------------------------
-       SAVED / CART
-    --------------------------------------------------------- */
     if (selected === "saved") {
-      return (
-        <SectionTable
-          title="Saved Products (Cart)"
-          data={cartRows}
-          columns={[
-            { key: "cart_id", label: "Cart ID" },
-            { key: "product_title", label: "Product" },
-            { key: "quantity", label: "Quantity" },
-            { key: "buyer_name", label: "Buyer" },
-          ]}
-          dataset="cart"
-          handleExport={handleExport}
-        />
-      );
+      return <SectionTable title="Saved Products (Cart)" data={cartRows} dataset="cart" handleExport={handleExport} columns={[
+        { key: "cart_id", label: "Cart ID" },
+        { key: "product_title", label: "Product" },
+        { key: "quantity", label: "Quantity" },
+        { key: "buyer_name", label: "Buyer" },
+      ]} />;
     }
 
-    /* ---------------------------------------------------------
-       CHATS
-    --------------------------------------------------------- */
     if (selected === "chats") {
-      return (
-        <SectionTable
-          title="Chats"
-          data={chats}
-          columns={[
-            { key: "chat_id", label: "Chat ID" },
-            { key: "product_title", label: "Product" },
-            { key: "buyer_name", label: "Buyer" },
-            { key: "seller_name", label: "Seller" },
-            { key: "created_at", label: "Created" },
-          ]}
-          dataset="chats"
-          handleExport={handleExport}
-        />
-      );
+      return <SectionTable title="Chats" data={chats} dataset="chats" handleExport={handleExport} columns={[
+        { key: "chat_id", label: "Chat ID" },
+        { key: "product_title", label: "Product" },
+        { key: "buyer_name", label: "Buyer" },
+        { key: "seller_name", label: "Seller" },
+        { key: "created_at", label: "Created" },
+      ]} />;
     }
 
     return null;
   };
 
-  /* ---------------------------------------------------------
-     LOADING & FINAL UI
-  --------------------------------------------------------- */
-  if (isAuth === null) {
-    return (
-      <div className="min-h-screen bg-gray-900 p-6 text-white">Loading...</div>
-    );
-  }
+  if (isAuth === null) return <div className="min-h-screen bg-[#FAFAF8] p-6 text-gray-700">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6 text-white">
+    <div className="min-h-screen bg-[#FAFAF8] p-6 text-gray-800">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
         <AdminSidebar
           counts={counts}
@@ -280,55 +221,40 @@ export default function AdminPage() {
           onLogout={handleLogout}
         />
 
-        <main className="bg-gray-900 rounded-xl border border-gray-800 shadow-sm text-white">
-          {loading ? <div className="p-6">Loading...</div> : renderContent()}
+        <main className="bg-white rounded-2xl border border-gray-200 shadow text-gray-800">
+          {loading ? <div className="p-6 text-gray-700">Loading...</div> : renderContent()}
         </main>
       </div>
     </div>
   );
 }
 
-/* ======================================================================
+/* ============================================================
    REUSABLE SECTION TABLE COMPONENT
-====================================================================== */
+============================================================ */
 function SectionTable({ title, data, columns, dataset, handleExport }) {
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">{title}</h2>
 
-      <div className="overflow-auto bg-gray-800 rounded-lg p-3">
+      <div className="overflow-auto bg-white rounded-lg shadow p-3">
         <div className="flex justify-end mb-3">
-          <button
-            onClick={() => handleExport({ format: "csv", dataset })}
-            className="px-3 py-1 rounded bg-gray-700 mr-2"
-          >
-            CSV
-          </button>
-          <button
-            onClick={() => handleExport({ format: "pdf", dataset })}
-            className="px-3 py-1 rounded bg-gray-700"
-          >
-            PDF
-          </button>
+          <button onClick={() => handleExport({ format: "csv", dataset })} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 transition mr-2">CSV</button>
+          <button onClick={() => handleExport({ format: "pdf", dataset })} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 transition">PDF</button>
         </div>
 
         <table className="w-full text-sm leading-relaxed">
           <thead>
-            <tr className="text-left text-white/80">
-              {columns.map((c) => (
-                <th key={c.key} className="py-2">{c.label}</th>
-              ))}
+            <tr className="text-left text-gray-500">
+              {columns.map(c => <th key={c.key} className="py-2">{c.label}</th>)}
             </tr>
           </thead>
-
           <tbody>
-            {data.map((row) => (
-              <tr key={row.id || row.chat_id || row.cart_id || row.auth_id} className="border-t border-gray-700 text-white">
-                {columns.map((c) => (
+            {data.map(row => (
+              <tr key={row.id || row.chat_id || row.cart_id || row.auth_id} className="border-t border-gray-200 hover:bg-gray-50">
+                {columns.map(c => (
                   <td key={c.key} className="py-2">
-                    {c.key === "created_at"
-                      ? new Date(row[c.key]).toLocaleString()
-                      : row[c.key]}
+                    {c.key === "created_at" ? new Date(row[c.key]).toLocaleString() : row[c.key]}
                   </td>
                 ))}
               </tr>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import {
   List,
@@ -12,10 +13,9 @@ import {
   MapPin,
   X,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import EditProductModal from "@/components/EditProductModal";
 
-// Dynamic Leaflet imports
+// Leaflet map dynamic import
 const LeafletMapWithDraw = dynamic(() => import("@/components/LeafletMap"), {
   ssr: false,
 });
@@ -126,12 +126,14 @@ export default function MyListings({ loadPage }) {
     setProductToDelete(null);
   };
 
+  // Edit product
   const handleEdit = (product) => {
     setMapModalProduct(null);
     setSelectedProduct(product);
     setShowEditModal(true);
   };
 
+  // Toggle sold status
   const toggleSoldStatus = async (product, markSold) => {
     const newStatus = markSold ? "sold" : "available";
     const { error } = await supabase
@@ -158,25 +160,25 @@ export default function MyListings({ loadPage }) {
 
   if (loading)
     return (
-      <div className="flex justify-center items-center h-[60vh] text-gray-400 text-lg bg-gray-900">
+      <div className="flex justify-center items-center h-[60vh] text-brown-200 text-lg bg-brown-900">
         Loading products...
       </div>
     );
 
   if (error)
     return (
-      <div className="max-w-xl mx-auto p-6 mt-12 text-center bg-red-900/30 text-red-400 border border-red-700 rounded-xl shadow">
+      <div className="max-w-xl mx-auto p-6 mt-12 text-center bg-red-900/30 text-red-200 border border-red-700 rounded-xl shadow">
         {error}
       </div>
     );
 
   return (
-    <div className="max-w-6xl mx-auto bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-6 md:p-10 text-gray-200">
+    <div className="max-w-6xl mx-auto bg-brown-100 rounded-2xl shadow-lg p-6 md:p-10 text-brown-900">
 
       {/* Success flash */}
       {successMsg && (
         <div className="fixed top-6 right-6 z-50 animate-fade-in-down">
-          <div className="backdrop-blur-sm bg-green-600/90 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3">
+          <div className="backdrop-blur-sm bg-green-500/90 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-3">
             <CheckCircle className="w-5 h-5" />
             <span className="font-medium">{successMsg}</span>
           </div>
@@ -185,9 +187,9 @@ export default function MyListings({ loadPage }) {
 
       {/* Delete Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center backdrop-blur-sm px-4">
-          <div className="bg-gray-800 w-full max-w-md rounded-xl shadow-xl p-6 animate-scale-in text-gray-200">
-            <div className="flex items-center gap-2 mb-4 text-red-500">
+        <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center px-4">
+          <div className="bg-brown-200 w-full max-w-md rounded-xl shadow-xl p-6">
+            <div className="flex items-center gap-2 mb-4 text-red-600">
               <AlertTriangle className="w-5 h-5" />
               <h3 className="text-xl font-semibold">Delete Product</h3>
             </div>
@@ -198,7 +200,7 @@ export default function MyListings({ loadPage }) {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition"
+                className="px-4 py-2 rounded-lg border border-brown-400 hover:bg-brown-300 transition"
               >
                 Cancel
               </button>
@@ -217,7 +219,7 @@ export default function MyListings({ loadPage }) {
       {showEditModal && selectedProduct && (
         <EditProductModal
           product={selectedProduct}
-          darkTheme={true}
+          darkTheme={false}
           onClose={() => setShowEditModal(false)}
           onUpdated={() => window.location.reload()}
         />
@@ -225,13 +227,13 @@ export default function MyListings({ loadPage }) {
 
       {/* Map Modal */}
       {mapModalProduct && (
-        <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="relative w-full max-w-4xl h-[85vh] bg-gray-900 rounded-lg shadow-xl overflow-hidden animate-slide-up">
+        <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center px-4">
+          <div className="relative w-full max-w-4xl h-[85vh] bg-brown-200 rounded-xl shadow-xl overflow-hidden">
             <button
               onClick={() => setMapModalProduct(null)}
-              className="absolute top-4 right-4 bg-gray-800/90 shadow-lg border rounded-full p-2 z-[300] hover:bg-gray-700 transition"
+              className="absolute top-4 right-4 bg-brown-300 shadow-lg border rounded-full p-2 hover:bg-brown-400 transition"
             >
-              <X className="w-5 h-5 text-green-400" />
+              <X className="w-5 h-5 text-green-500" />
             </button>
 
             <LeafletMapWithDraw
@@ -250,7 +252,7 @@ export default function MyListings({ loadPage }) {
               style={{ height: "100%" }}
             />
 
-            <div className="absolute bottom-6 right-6 z-[300]">
+            <div className="absolute bottom-6 right-6">
               <button
                 onClick={async () => {
                   const { error } = await supabase
@@ -268,7 +270,7 @@ export default function MyListings({ loadPage }) {
                     setMapModalProduct(null);
                   }
                 }}
-                className="px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg shadow-lg hover:bg-green-600 transition"
+                className="px-5 py-2.5 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition"
               >
                 Save Location
               </button>
@@ -278,19 +280,19 @@ export default function MyListings({ loadPage }) {
       )}
 
       {/* Header */}
-      <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-green-400">
+      <h2 className="text-3xl font-bold mb-6 flex items-center gap-3 text-green-500">
         <List className="w-7 h-7" />
         My Product Listings
       </h2>
 
       {/* No Products */}
       {products.length === 0 ? (
-        <div className="border border-dashed border-gray-600 rounded-xl py-12 text-center bg-gray-800">
-          <PackageX className="w-12 h-12 mx-auto text-gray-500 mb-3" />
-          <p className="text-gray-400">You have no products yet.</p>
+        <div className="border border-dashed border-brown-400 rounded-xl py-12 text-center bg-brown-100">
+          <PackageX className="w-12 h-12 mx-auto text-brown-500 mb-3" />
+          <p className="text-brown-600">You have no products yet.</p>
           <button
             onClick={() => loadPage?.("add-product")}
-            className="mt-4 px-5 py-2.5 bg-green-500 text-gray-900 rounded-lg hover:bg-green-600 transition"
+            className="mt-4 px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
           >
             Add Product
           </button>
@@ -300,10 +302,10 @@ export default function MyListings({ loadPage }) {
           {products.map((product) => (
             <div
               key={product.product_id}
-              className="bg-gray-800 border border-gray-700 rounded-xl shadow-sm hover:shadow-md transition p-4 flex flex-col relative"
+              className="bg-brown-50 border border-brown-200 rounded-xl shadow-sm hover:shadow-md transition p-4 flex flex-col relative"
             >
               {product.status === "sold" && (
-                <div className="absolute top-3 right-3 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded-full shadow">
+                <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 text-xs font-bold rounded-full shadow">
                   SOLD
                 </div>
               )}
@@ -318,7 +320,7 @@ export default function MyListings({ loadPage }) {
                   }`}
                 />
               ) : (
-                <div className="w-full h-48 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 mb-3">
+                <div className="w-full h-48 bg-brown-200 rounded-lg flex items-center justify-center text-brown-500 mb-3">
                   No Image
                 </div>
               )}
@@ -329,14 +331,14 @@ export default function MyListings({ loadPage }) {
                   onClick={() =>
                     product.status !== "sold" && setMapModalProduct(product)
                   }
-                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-gray-700 relative mb-3 ${
+                  className={`w-full h-32 rounded-lg overflow-hidden shadow-inner border border-brown-300 relative mb-3 ${
                     product.status === "sold"
                       ? "opacity-50 cursor-not-allowed"
                       : "cursor-pointer"
                   }`}
                 >
-                  <div className="absolute top-2 left-2 bg-gray-900/70 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">
-                    <MapPin className="w-4 h-4 text-green-400" />
+                  <div className="absolute top-2 left-2 bg-brown-100/70 px-2 py-1 rounded-md text-sm flex items-center gap-1 z-10">
+                    <MapPin className="w-4 h-4 text-green-500" />
                     Preview
                   </div>
 
@@ -350,15 +352,15 @@ export default function MyListings({ loadPage }) {
               )}
 
               {/* Title + Category */}
-              <h3 className="font-semibold text-lg text-green-400 line-clamp-1">
+              <h3 className="font-semibold text-lg text-green-500 line-clamp-1">
                 {product.title}
               </h3>
-              <p className="text-sm text-gray-400 mb-2">
+              <p className="text-sm text-brown-500 mb-2">
                 {product.categories?.cat_name || "Uncategorized"}
               </p>
 
               {/* Description */}
-              <p className="text-gray-300 text-sm line-clamp-2 mb-4">
+              <p className="text-brown-600 text-sm line-clamp-2 mb-4">
                 {product.description}
               </p>
 
@@ -369,7 +371,7 @@ export default function MyListings({ loadPage }) {
                     ₱{Number(product.price).toFixed(2)}
                   </span>
                   {product.original_price && (
-                    <span className="ml-2 text-gray-500 line-through text-sm">
+                    <span className="ml-2 text-brown-400 line-through text-sm">
                       ₱{Number(product.original_price).toFixed(2)}
                     </span>
                   )}
@@ -378,20 +380,20 @@ export default function MyListings({ loadPage }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(product)}
-                    className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
+                    className="p-2 bg-brown-200 text-green-500 rounded-lg hover:bg-brown-300 transition"
                   >
                     <Edit size={16} />
                   </button>
                   <button
                     onClick={() => confirmDelete(product)}
-                    className="p-2 bg-gray-700 text-red-500 rounded-lg hover:bg-gray-600 transition"
+                    className="p-2 bg-brown-200 text-red-500 rounded-lg hover:bg-brown-300 transition"
                   >
                     <Trash2 size={16} />
                   </button>
                   {product.status !== "sold" && (
                     <button
                       onClick={() => toggleSoldStatus(product, true)}
-                      className="p-2 bg-gray-700 text-green-400 rounded-lg hover:bg-gray-600 transition"
+                      className="p-2 bg-brown-200 text-green-500 rounded-lg hover:bg-brown-300 transition"
                     >
                       Sold
                     </button>
@@ -400,13 +402,13 @@ export default function MyListings({ loadPage }) {
               </div>
 
               {/* Footer Metadata */}
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-brown-500">
                 Condition: {product.condition || "N/A"} <br />
                 {product.lat && product.lng
                   ? `Location: ${product.lat.toFixed(5)}, ${product.lng.toFixed(5)}`
                   : "Location: N/A"}
                 <br />
-                <span className="block mt-1 text-gray-400">
+                <span className="block mt-1 text-brown-400">
                   Posted on{" "}
                   {new Date(product.created_at).toLocaleDateString("en-PH", {
                     month: "short",
