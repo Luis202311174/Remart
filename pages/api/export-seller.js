@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -44,7 +44,6 @@ export default async function handler(req, res) {
       .single();
 
     const sellerName = profile ? `${profile.fname} ${profile.lname}` : "Unknown Seller";
-    const sellerAuthId = auth.id;
     const sellerEmail = auth.email || "Unknown Email";
 
     // ================= FETCH PRODUCTS =================
@@ -53,24 +52,42 @@ export default async function handler(req, res) {
       .select("product_id, title, price, condition, status, created_at")
       .eq("seller_id", sellerId);
 
+    const generatedAt = new Date();
+    const totalProducts = products ? products.length : 0;
+
+    // Count statuses (available, sold, etc.)
+    const statusCounts = (products || []).reduce((acc, p) => {
+      const key = (p.status || "Unknown").toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const availableCount = statusCounts["available"] || 0;
+    const soldCount = statusCounts["sold"] || 0;
+
     // ================= CSV =================
     if (format === "csv") {
       let csv = "";
       csv += `"Seller Name","${sellerName}"\n`;
-      csv += `"Seller Auth ID","${sellerAuthId}"\n`;
       csv += `"Seller Email","${sellerEmail}"\n`;
-      csv += `"Generated","${new Date().toLocaleString()}"\n\n`;
+      csv += `"Generated","${generatedAt.toLocaleString()}"\n`;
+      csv += `"Total Products","${totalProducts}"\n\n`;
 
       csv += `"Products"\n`;
-      const headers = ["product_id", "title", "price", "condition", "status", "created_at"];
+      const headers = ["title", "price", "condition", "status", "created_at"];
       csv += headers.join(",") + "\n";
 
       if (!products || products.length === 0) {
-        csv += `"There are no products data"\n`;
+        csv += `"No products found"\n`;
       } else {
         for (const p of products) {
           csv += headers
-            .map((h) => `"${String(p[h] || "").replace(/"/g, '""')}"`)
+            .map((h) => {
+              if (h === "created_at") {
+                return `"${new Date(p[h]).toLocaleDateString()}"`;
+              }
+              return `"${String(p[h] || "").replace(/"/g, '""')}"`;
+            })
             .join(",") + "\n";
         }
       }
@@ -82,50 +99,76 @@ export default async function handler(req, res) {
 
     // ================= PDF =================
     const doc = new jsPDF();
+    const w = doc.internal.pageSize.getWidth();
 
+    // ====== HEADER ======
     doc.setFontSize(18);
-    doc.text("ReMart: Seller Data Export", 14, 16);
+    doc.setTextColor(20);
+    doc.text("ReMart: Seller Data Export", 14, 18);
 
-    doc.setFontSize(11);
-    let currentY = 26;
-    doc.text(`Seller Name: ${sellerName}`, 14, currentY); currentY += 6;
-    doc.text(`Seller Auth ID: ${sellerAuthId}`, 14, currentY); currentY += 6;
-    doc.text(`Seller Email: ${sellerEmail}`, 14, currentY); currentY += 6;
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, currentY); currentY += 6;
+    doc.setFontSize(12);
+    doc.setTextColor(40);
+    doc.text(`Name: ${sellerName}`, 14, 28);
+    doc.text(`Email: ${sellerEmail}`, 14, 36);
 
-    // divider
-    doc.line(14, currentY, 198, currentY); 
-    currentY += 9;
+    // Divider
+    doc.setDrawColor(150);
+    doc.setLineWidth(0.5);
+    doc.line(14, 42, w - 14, 42);
 
-    const addPageNum = () => {
-      const page = doc.getNumberOfPages();
-      doc.setFontSize(10);
-      doc.text(`Page ${page}`, 185, 290);
-    };
-    addPageNum();
+    let currentY = 50;
 
-    // ================= PRODUCTS TABLE =================
+    // ====== PRODUCTS TITLE ======
     doc.setFontSize(14);
-    doc.text("Products", 14, currentY);
-    currentY += 4;
+    doc.setTextColor(0);
+    doc.text("List of Products", 14, currentY);
+    currentY += 6;
 
     autoTable(doc, {
-      startY: currentY + 2,
-      head: [["ID", "Title", "Price", "Condition", "Status", "Created"]],
-      body:
-        products && products.length > 0
-          ? products.map((p) => [
-              p.product_id,
-              p.title,
-              p.price,
-              p.condition,
-              p.status,
-              new Date(p.created_at).toLocaleDateString(),
-            ])
-          : [["There are no products data", "", "", "", "", ""]],
+      startY: currentY,
+      head: [["Title", "Price", "Condition", "Status", "Created"]],
+      body: products && products.length > 0
+        ? products.map((p) => [
+            p.title,
+            p.price,
+            p.condition,
+            p.status,
+            new Date(p.created_at).toLocaleDateString(),
+          ])
+        : [["No products found", "", "", "", ""]],
+      margin: { left: 14, right: 14 },
     });
 
-    addPageNum();
+    // Total products
+    const productsLastY = doc.lastAutoTable?.finalY || currentY;
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    doc.text(`Total Products: ${totalProducts}`, 14, productsLastY + 8);
+    doc.text(`Available: ${availableCount}    Sold: ${soldCount}`, 14, productsLastY + 16);
+
+    // Footer on all pages
+    const addFooters = () => {
+      const pageCount = doc.getNumberOfPages();
+      const h = doc.internal.pageSize.getHeight();
+      const genText = `Generated: ${generatedAt.toLocaleDateString()}, ${generatedAt.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })}`;
+
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const footerY = h - 12;
+        doc.setDrawColor(150);
+        doc.setLineWidth(0.5);
+        doc.line(14, footerY - 6, w - 14, footerY - 6);
+        doc.text(genText, 14, footerY);
+        doc.text(`Page ${i} of ${pageCount}`, w - 14, footerY, { align: "right" });
+      }
+    };
+
+    addFooters();
 
     const out = doc.output("arraybuffer");
     res.setHeader("Content-Type", "application/pdf");

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       { data: chatsRaw }
     ] = await Promise.all([
       supabaseAdmin.from("profiles").select("auth_id, fname, lname, pfp, created_at"),
-      supabaseAdmin.from("seller").select("id, auth_id"),
+      supabaseAdmin.from("seller").select("id, auth_id, created_at"),
       supabaseAdmin.from("products").select("product_id, title, price, original_price, condition, status, created_at, location, seller_id"),
       supabaseAdmin.from("cart").select("cart_id, product_id, quantity, added_at, buyer_id"),
       supabaseAdmin.from("chats").select("chat_id, product_id, buyer_auth_id, seller_auth_id, created_at")
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     });
 
     // ===========================================================
-    // CSV EXPORT
+    // CSV EXPORT (omit any ID columns)
     // ===========================================================
     if (format === "csv") {
       let csv = "";
@@ -98,19 +98,19 @@ export default async function handler(req, res) {
       }
 
       if (dataset === "all" || dataset === "users")
-        section("Users", users, ["auth_id", "fname", "lname", "created_at"]);
+        section("Users", users, ["fname", "lname", "created_at"]);
 
       if (dataset === "all" || dataset === "sellers")
-        section("Sellers", enrichedSellers, ["id", "fname", "lname", "auth_id", "created_at"]);
+        section("Sellers", enrichedSellers, ["fname", "lname", "created_at"]);
 
       if (dataset === "all" || dataset === "products")
-        section("Products", enrichedProducts, ["product_id", "title", "price", "original_price", "condition", "status", "created_at", "location", "seller_name"]);
+        section("Products", enrichedProducts, ["title", "price", "original_price", "condition", "status", "created_at", "location", "seller_name"]);
 
       if (dataset === "all" || dataset === "cart")
-        section("Cart", enrichedCart, ["cart_id", "product_title", "quantity", "buyer_name", "added_at"]);
+        section("Cart", enrichedCart, ["product_title", "quantity", "buyer_name", "added_at"]);
 
       if (dataset === "all" || dataset === "chats")
-        section("Chats", enrichedChats, ["chat_id", "product_title", "buyer_name", "seller_name", "created_at"]);
+        section("Chats", enrichedChats, ["product_title", "buyer_name", "seller_name", "created_at"]);
 
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", `attachment; filename="remart_export_${dataset}.csv"`);
@@ -118,164 +118,247 @@ export default async function handler(req, res) {
     }
 
     // ===========================================================
-    // PDF EXPORT
+    // PDF EXPORT (optimized header/footer/layout, omit ID columns)
     // ===========================================================
     const doc = new jsPDF();
 
-    // Header
-    doc.setFontSize(18);
-    doc.text("Remart Administrative Export", 14, 18);
-    doc.setFontSize(11);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
-    doc.line(14, 30, 200, 30);
+    const generatedAt = new Date();
 
-    // Page number footer
-    const addPageNumber = () => {
-      const pageCount = doc.getNumberOfPages();
-      doc.setFontSize(10);
-      doc.text(`Page ${pageCount}`, 185, 290);
+    // compute summary totals and status breakdowns
+    const totals = {
+      users: users.length,
+      sellers: enrichedSellers.length,
+      products: enrichedProducts.length,
+      chats: enrichedChats.length,
+      savedProducts: enrichedCart.length
     };
-    addPageNumber();
+
+    const productStatusCounts = enrichedProducts.reduce((acc, p) => {
+      const key = p.status || 'Unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Helper: draw the standardized header and section title
+    function addHeader(sectionTitle) {
+      const w = doc.internal.pageSize.getWidth();
+      doc.setFontSize(18);
+      doc.setTextColor(20);
+      doc.text("Remart Administrative Report", w / 2.18, 18, { align: "right" });
+      doc.setDrawColor(150);
+      doc.setLineWidth(0.5);
+      doc.line(14, 26, w - 14, 26);
+      if (sectionTitle) {
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text(sectionTitle, 14, 34);
+      }
+    }
 
     let firstSection = true;
-    const newPage = () => {
+
+    function addFrontPage() {
       if (!firstSection) doc.addPage();
       firstSection = false;
+      const w = doc.internal.pageSize.getWidth();
+      doc.setFontSize(22);
+      doc.setTextColor(20);
+      doc.text("Remart Administrative Report", w / 2, 30, { align: "center" });
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.setDrawColor(150);
+      doc.setLineWidth(0.5);
+      doc.line(14, 43, w - 14, 43);
+
+      // Data Metrics title
+      doc.setFontSize(16);
+      doc.setTextColor(20);
+      doc.text("Data Metrics", 14, 55);
+
+      // Summary totals table
+      const summaryData = [
+        ["Total Users", totals.users],
+        ["Total Sellers", totals.sellers],
+        ["Total Products", totals.products],
+        ["Total Chats", totals.chats]
+      ];
+
+      autoTable(doc, {
+        startY: 58,
+        head: [["Metric", "Count"]],
+        body: summaryData,
+        theme: "grid",
+        margin: { left: 14, right: 14 },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+        bodyStyles: { textColor: 0 },
+        alternateRowStyles: { fillColor: [245, 245, 245] }
+      });
+
+      // Product status breakdown table
+      const statuses = Object.entries(productStatusCounts);
+      if (statuses.length) {
+        const statusData = statuses.map(([status, count]) => [status, count]);
+        const lastY = doc.lastAutoTable.finalY || 120;
+
+        autoTable(doc, {
+          startY: lastY + 15,
+          head: [["Product Status", "Count"]],
+          body: statusData,
+          theme: "grid",
+          margin: { left: 14, right: 14 },
+          headStyles: { fillColor: [52, 152, 219], textColor: 255, fontStyle: "bold" },
+          bodyStyles: { textColor: 0 },
+          alternateRowStyles: { fillColor: [245, 245, 245] }
+        });
+      }
+    }
+
+    const newPage = (sectionTitle) => {
+      if (!firstSection) doc.addPage();
+      firstSection = false;
+      addHeader(sectionTitle);
     };
 
+    // Table options use a unified startY so content sits below header
     const tableOptions = {
-      startY: 43,
-      margin: { top: 43 }
+      startY: 40,
+      margin: { top: 40 }
     };
 
-    // ========= USERS =========
+    // Add front page
+    addFrontPage();
+
+    // ========= USERS (moved to its own page after front page) =========
     if (dataset === "all" || dataset === "users") {
-      newPage();
-      doc.setFontSize(14);
-      doc.text("Users", 14, 39);
+      newPage("List of Users");
 
       autoTable(doc, {
         ...tableOptions,
-        head: [["Auth ID", "First Name", "Last Name", "Created"]],
+        head: [["First Name", "Last Name", "Created"]],
         body: users.map(u => [
-          u.auth_id,
           u.fname || "",
           u.lname || "",
-          new Date(u.created_at).toLocaleDateString()
+          u.created_at ? new Date(u.created_at).toLocaleDateString() : ""
         ])
       });
 
-      addPageNumber();
+      const usersLastY = doc.lastAutoTable?.finalY || tableOptions.startY;
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text(`Total Users: ${totals.users}`, 14, usersLastY + 8);
     }
 
     // ========= SELLERS =========
     if (dataset === "all" || dataset === "sellers") {
-      newPage();
-      doc.setFontSize(18);
-      doc.text("Remart Administrative Export", 14, 18);
-      doc.setFontSize(11);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
-      doc.line(14, 30, 200, 30);
-      doc.setFontSize(14);
-      doc.text("Sellers", 14, 39);
+      newPage("List of Sellers");
 
       autoTable(doc, {
         ...tableOptions,
-        head: [["ID", "Name", "Auth ID"]],
+        head: [["Name", "Created"]],
         body: enrichedSellers.map(s => [
-          s.id,
           `${s.fname} ${s.lname}`.trim(),
-          s.auth_id,
-          new Date(s.created_at).toLocaleDateString()
+          s.created_at ? new Date(s.created_at).toLocaleDateString() : ""
         ])
       });
 
-      addPageNumber();
+      const sellersLastY = doc.lastAutoTable?.finalY || tableOptions.startY;
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text(`Total Sellers: ${totals.sellers}`, 14, sellersLastY + 8);
     }
 
     // ========= PRODUCTS =========
     if (dataset === "all" || dataset === "products") {
-      newPage();
-      doc.setFontSize(18);
-      doc.text("Remart Administrative Export", 14, 18);
-      doc.setFontSize(11);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
-      doc.line(14, 30, 200, 30);
-      doc.setFontSize(14);
-      doc.text("Products", 14, 39);
+      newPage("List of all Products");
 
       autoTable(doc, {
         ...tableOptions,
-        head: [["ID", "Title", "Price", "Condition", "Status", "Seller", "Created"]],
+        head: [["Title", "Price", "Condition", "Status", "Seller", "Created"]],
         body: enrichedProducts.map(p => [
-          p.product_id,
           p.title,
           p.price,
           p.condition,
           p.status,
           p.seller_name,
-          new Date(p.created_at).toLocaleDateString()
+          p.created_at ? new Date(p.created_at).toLocaleDateString() : ""
         ])
       });
 
-      addPageNumber();
+      const productsLastY = doc.lastAutoTable?.finalY || tableOptions.startY;
+      const availableCount = Object.entries(productStatusCounts).reduce((acc, [k, v]) => acc + ((k || '').toLowerCase() === 'available' ? v : 0), 0);
+      const soldCount = Object.entries(productStatusCounts).reduce((acc, [k, v]) => acc + ((k || '').toLowerCase() === 'sold' ? v : 0), 0);
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text(`Total Products: ${totals.products}`, 14, productsLastY + 8);
+      doc.text(`Available: ${availableCount}    Sold: ${soldCount}`, 14, productsLastY + 16);
     }
 
     // ========= CART =========
     if (dataset === "all" || dataset === "cart") {
-      newPage();
-      doc.setFontSize(18);
-      doc.text("Remart Administrative Export", 14, 18);
-      doc.setFontSize(11);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
-      doc.line(14, 30, 200, 30);
-      doc.setFontSize(14);
-      doc.text("Saved Products (Cart)", 14, 39);
+      newPage("List of all Saved Products (Cart)");
 
       autoTable(doc, {
         ...tableOptions,
-        head: [["Cart ID", "Product", "Qty", "Buyer", "Added"]],
+        head: [["Product", "Qty", "Buyer", "Added"]],
         body: enrichedCart.map(c => [
-          c.cart_id,
           c.product_title,
           c.quantity,
           c.buyer_name,
-          new Date(c.added_at).toLocaleDateString()
+          c.added_at ? new Date(c.added_at).toLocaleDateString() : ""
         ])
       });
 
-      addPageNumber();
+      const cartLastY = doc.lastAutoTable?.finalY || tableOptions.startY;
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text(`Total Saved Products: ${totals.savedProducts}`, 14, cartLastY + 8);
     }
 
     // ========= CHATS =========
     if (dataset === "all" || dataset === "chats") {
-      newPage();
-      doc.setFontSize(18);
-      doc.text("Remart Administrative Export", 14, 18);
-      doc.setFontSize(11);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
-      doc.line(14, 30, 200, 30);
-      doc.setFontSize(14);
-      doc.text("Chats", 14, 39);
+      newPage("List of Chats");
 
       autoTable(doc, {
         ...tableOptions,
-        head: [["Chat ID", "Product", "Buyer", "Seller", "Created"]],
+        head: [["Product", "Buyer", "Seller", "Created"]],
         body: enrichedChats.map(c => [
-          c.chat_id,
-          c.product_title,   // show product title instead of ID
-          c.buyer_name,      // enriched name
-          c.seller_name,     // enriched name
-          new Date(c.created_at).toLocaleDateString()
+          c.product_title,
+          c.buyer_name,
+          c.seller_name,
+          c.created_at ? new Date(c.created_at).toLocaleDateString() : ""
         ])
       });
 
-      addPageNumber();
+      const chatsLastY = doc.lastAutoTable?.finalY || tableOptions.startY;
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text(`Total Chats: ${totals.chats}`, 14, chatsLastY + 8);
     }
 
-    // ============================
-    // GRAPH PAGE REMOVED
-    // ============================
+    // Add consistent footer (Generated: date,time left  Page X of Y right) on every page
+    const addFooters = () => {
+      const pageCount = doc.getNumberOfPages();
+      const w = doc.internal.pageSize.getWidth();
+      const h = doc.internal.pageSize.getHeight();
+      const genText = `Generated: ${generatedAt.toLocaleDateString()}, ${generatedAt.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })}`;
+
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const footerY = h - 12;
+        doc.setDrawColor(150);
+        doc.setLineWidth(0.5);
+        doc.line(14, footerY - 6, w - 14, footerY - 6);
+        doc.text(genText, 14, footerY);
+        doc.text(`Page ${i} of ${pageCount}`, w - 14, footerY, { align: "right" });
+      }
+    };
+
+    addFooters();
 
     // Send PDF
     const pdfBytes = doc.output("arraybuffer");

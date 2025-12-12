@@ -17,9 +17,6 @@ export default function ChatbotLayout({ productData, isOpen, onClose, condition 
 
   // Use condition passed from event, or default
   const defaultCondition = condition || "Respond in a friendly and helpful manner. Keep responses concise and relevant to the user's questions about the product.";
-  // Other options:
-  // "Only send a precise, concise response. Avoid extra details."
-  // "Summarize your response in a user-friendly way. Keep it simple and easy to understand."
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
